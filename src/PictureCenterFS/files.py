@@ -17,7 +17,7 @@ from Tools.Directories import copyfile
 from Tools.LoadPixmap import LoadPixmap
 
 # PLUGIN IMPORTS
-from . import _ # for localized messages
+from . import _  # for localized messages
 
 try:
 	from enigma import eMediaDatabase
@@ -292,7 +292,7 @@ class backup:
 				self.err(_("restore failed"))
 
 	def err(self, res):
-		self.session.open(MessageBox,res,type = MessageBox.TYPE_ERROR,timeout = 5)
+		self.session.open(MessageBox, res, type=MessageBox.TYPE_ERROR, timeout=5)
 
 
 class BackupLocationBox(LocationBox):

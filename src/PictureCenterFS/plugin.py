@@ -51,7 +51,7 @@ from Tools.Directories import SCOPE_SYSETC, SCOPE_PLUGINS, SCOPE_CURRENT_SKIN, r
 from Tools.LoadPixmap import LoadPixmap
 
 # PLUGIN IMPORTS
-from . import _ # for localized messages
+from . import _  # for localized messages
 from .files import PictureCenterFS7_Filemenu, backup, save_mark
 
 version = "9.0beta"
@@ -65,8 +65,11 @@ TYPE_PIC = (".jpg", ".jpeg", ".jpe", ".bmp", ".png")
 TYPE_MOV = (".mpg", ".mov", ".mp4", ".mkv", ".avi", ".mpeg", ".mts", ".m2ts", ".wmv", ".flv")
 # pics = ["txt_pin.png","pic.png","up.png","pin.png","ordner.png","err_pin.png","mov.png","pcfs_play.png","pcfs_random.png","pcfs_pause.png"]
 
+
 def getScale():
 	return AVSwitch().getFramebufferScale()
+
+
 size_w = getDesktop(0).size().width()
 size_h = getDesktop(0).size().height()
 if size_w > 1850:
@@ -199,6 +202,7 @@ vollbildsets = [fullbildsort.value, infoline.value, playvideo.value, std_read_su
 exclude = ()
 if len(excludeconf.value.strip()):
 	exclude = excludeconf.value.split(",")
+
 
 class PictureCenterFS7(Screen, HelpableScreen):
 	with open(SKIN_EXT + skin_ext_zusatz + "pcfs.xml") as tmpskin:
@@ -932,6 +936,7 @@ class file_list:
 							return ret
 ######################################################################
 
+
 class PictureCenterFS7_Edit(Screen, ConfigListScreen, HelpableScreen):
 	with open(SKIN_EXT + skin_ext_zusatz + "pcFS_setup.xml") as tmpskin:
 		skin = tmpskin.read()
@@ -1066,7 +1071,7 @@ class PictureCenterFS7_Edit(Screen, ConfigListScreen, HelpableScreen):
 		self.configparser2.read(DATAFILE)
 		if len(self.altname) > 0 and self.configparser2.has_section(self.altname):
 			self.configparser2.remove_section(self.altname)
-			self.session.openWithCallback(self.save2, MessageBox,self.altname +_("Bookmark overwrite?"), MessageBox.TYPE_YESNO)
+			self.session.openWithCallback(self.save2, MessageBox, self.altname + _("Bookmark overwrite?"), MessageBox.TYPE_YESNO)
 		try:
 			self.configparser2.add_section(self.conf_name.value)
 			self.save3()
@@ -3319,6 +3324,7 @@ class picload_thread(Thread):
 				break
 		self.killed = True
 
+
 def read_marks(file0=None, add_file=None, del_file=None):
 	if file0:
 		filelist = []
@@ -3372,6 +3378,7 @@ class pcFSLCDScreen(Screen):
 		self["name1"].setText(name1)
 #------------------------------------------------------------------------------------------
 
+
 def main(session, **kwargs):
 #	try:
 	session.open(PictureCenterFS7)
@@ -3379,14 +3386,17 @@ def main(session, **kwargs):
 #		from traceback import print_exc
 #		print_exc()
 
+
 def menu(menuid, **kwargs):
 	if menuid == "mainmenu":
 		return [("PictureCenterFS", main, "pcfs", 66)]
 	return []
 
+
 def screensaver(session, **kwargs):
 	if saver_on and saver_path.value:
 		session.open(Pic_Full_View3, saver_path.value, "saver")
+
 
 def Plugins(**kwargs):
 	plist = []
