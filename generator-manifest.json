@@ -1,0 +1,24 @@
+{
+  "depends": "",
+  "description": "PictureCenterFS",
+  "legacy_setup": {
+    "description": "",
+    "has_setup_translate": false,
+    "name": "",
+    "package_data": [],
+    "package_dir_value": "",
+    "packages": [],
+    "pkg": "",
+    "version": ""
+  },
+  "module_dir_name": "PictureCenterFS",
+  "package_name": "enigma2-plugin-extensions-picture-center-f-s",
+  "plugin_group": "extensions",
+  "source_repo_branch": "main",
+  "source_repo_name": "PictureCenterFS",
+  "source_repo_url": "https://github.com/oe-mirrors/PictureCenterFS.git",
+  "target_repo_branch": "main",
+  "target_repo_name": "PictureCenterFS",
+  "target_repo_url": "git@github.com:oe-alliance-plugins/PictureCenterFS.git",
+  "version": "1.0"
+}
