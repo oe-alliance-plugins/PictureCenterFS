@@ -13,16 +13,16 @@ from Screens.LocationBox import LocationBox
 from Screens.MessageBox import MessageBox
 from Screens.Screen import Screen
 from Screens.VirtualKeyBoard import VirtualKeyBoard
-from Tools.Directories import copyfile
+from Tools.Directories import copyfile, fileExists, pathExists, resolveFilename, SCOPE_CURRENT_SKIN
 from Tools.LoadPixmap import LoadPixmap
 
 # PLUGIN IMPORTS
 from . import _  # for localized messages
 
 try:
-	from enigma import eMediaDatabase
+	from enigma import eMediaDatabase  # noqa F401
 	DPKG = True
-except:
+except ImportError:
 	DPKG = False
 plugin = "PictureCenterFS"
 skin_zusatz = "fHD" if getDesktop(0).size().width() > 1850 else "HD"
@@ -102,7 +102,7 @@ class PictureCenterFS7_Filemenu(Screen):
 	def showPic(self, picInfo=""):
 		if skin_zusatz != "SD/":
 			ptr = self.picload.getData()
-			if ptr != None:
+			if ptr is not None:
 				self["thumb"].instance.setPixmap(ptr)
 
 	def keyNumberGlobal(self, number):
@@ -129,7 +129,7 @@ class PictureCenterFS7_Filemenu(Screen):
 	def save_rotat2(self, args=None):
 		if args:
 			try:
-				copyfile(source, target)
+				copyfile(self.file1, self.file1)  # FIXME
 				self.session.openWithCallback(self.exit, MessageBox, (self.file1 + "\n" + _("file successfully saved")), MessageBox.TYPE_INFO)
 			except OSError as e:
 				txt = 'error: \n%s' % e

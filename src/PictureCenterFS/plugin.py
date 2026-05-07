@@ -26,7 +26,7 @@ from xml.etree.cElementTree import parse as cet_parse
 from enigma import eListboxPythonMultiContent, gFont, RT_HALIGN_LEFT, RT_VALIGN_CENTER, ePoint, eSize, ePicLoad, eTimer, getDesktop, iPlayableService, eServiceReference, gMainDC
 from Components.ActionMap import ActionMap, HelpableActionMap
 from Components.AVSwitch import AVSwitch
-from Components.config import config, ConfigDirectory, ConfigSubsection, ConfigInteger, ConfigSelection, ConfigText, ConfigEnableDisable, getConfigListEntry, NoSave, ConfigSequence, ConfigText, ConfigNothing
+from Components.config import config, ConfigDirectory, ConfigSubsection, ConfigInteger, ConfigSelection, ConfigText, ConfigEnableDisable, getConfigListEntry, NoSave, ConfigSequence, ConfigNothing
 from Components.ConfigList import ConfigListScreen
 from Components.Console import Console
 from Components.Harddisk import harddiskmanager
@@ -84,10 +84,12 @@ else:
 	zeil_high = 30
 icon_path = SKIN_EXT + skin_ext_zusatz + "pictures/"
 icon_path1 = SKIN_EXT + "pictures/"
-pics2 = {"txt_pin": icon_path + "txt_pin.png", "pic": icon_path + "pic.png", "up": icon_path + "up.png", "pin": icon_path + "pin.png",
-	   "ordner": icon_path + "ordner.png", "err_pin": icon_path + "err_pin.png", "mov": icon_path1 + "mov.png",
-	   "pcfs_play": icon_path1 + "pcfs_play.png", "pcfs_random": icon_path1 + "pcfs_random.png", "pcfs_pause": icon_path1 + "pcfs_pause.png",
-	   "b_pcfs_play": icon_path1 + "b_pcfs_play.png", "b_pcfs_random": icon_path1 + "b_pcfs_random.png", "b_pcfs_pause": icon_path1 + "b_pcfs_pause.png"}
+pics2 = {
+	"txt_pin": icon_path + "txt_pin.png", "pic": icon_path + "pic.png", "up": icon_path + "up.png", "pin": icon_path + "pin.png",
+	"ordner": icon_path + "ordner.png", "err_pin": icon_path + "err_pin.png", "mov": icon_path1 + "mov.png",
+	"pcfs_play": icon_path1 + "pcfs_play.png", "pcfs_random": icon_path1 + "pcfs_random.png", "pcfs_pause": icon_path1 + "pcfs_pause.png",
+	"b_pcfs_play": icon_path1 + "b_pcfs_play.png", "b_pcfs_random": icon_path1 + "b_pcfs_random.png", "b_pcfs_pause": icon_path1 + "b_pcfs_pause.png"
+}
 if exists(resolveFilename(SCOPE_CURRENT_SKIN, "Extensions/PictureCenterFS/pictures")):
 	for k in pics2.keys():
 		fl = "Extensions/PictureCenterFS/pictures/" + k + ".png"
@@ -102,15 +104,17 @@ config.plugins.PictureCenterFS = ConfigSubsection()
 config.plugins.PictureCenterFS.hauptmenu = ConfigSelection(default="1", choices=[("1", _("Menu")), ("2", _("Menu & Mainmenu")), ("3", _("Menu & Extensionsmenu")), ("4", _("Menu, Mainmenu & Extensionsmenu"))])
 if config.plugins.PictureCenterFS.hauptmenu.value == "true":
 	config.plugins.PictureCenterFS.hauptmenu.value = "1"
-Farbe = [("transparent", _("transparent")), ("skin0", _("from Plugin-Skin")), ("skin", _("from System-Skin")), ("black", _("black")), ("white", _("white")),
- ("gray", _("gray")), ("silver", _("silver")), ("slategray", _("slategray")),
+Farbe = [
+	("transparent", _("transparent")), ("skin0", _("from Plugin-Skin")), ("skin", _("from System-Skin")), ("black", _("black")), ("white", _("white")),
+	("gray", _("gray")), ("silver", _("silver")), ("slategray", _("slategray")),
 	("aquamarine", _("aquamarine")),
- ("yellow", _("yellow")), ("greenyellow", _("greenyellow")), ("gold", _("gold")),
- ("red", _("red")), ("tomato", _("tomato")), ("darkred", _("darkred")), ("indianred", _("indianred")), ("orange", _("orange")), ("darkorange", _("darkorange")), ("orangered", _("orangered")),
- ("green", _("green")), ("lawngreen", _("lawngreen")), ("darkgreen", _("darkgreen")), ("lime", _("lime")), ("lightgreen", _("lightgreen")),
- ("blue", _("blue")), ("blueviolet", _("blueviolet")), ("indigo", _("indigo")), ("darkblue", _("darkblue")), ("cadetblue", _("cadetblue")), ("cornflowerblue", _("cornflowerblue")), ("lightblue", _("lightblue")),
- ("magenta", _("magenta")), ("violet", _("violet")), ("darkorchid", _("darkorchid")), ("deeppink", _("deeppink")), ("cyan", _("cyan")),
- ("brown", _("brown")), ("sandybrown", _("sandybrown")), ("moccasin", _("moccasin")), ("rosybrown", _("rosybrown")), ("olive", _("olive")), ]
+	("yellow", _("yellow")), ("greenyellow", _("greenyellow")), ("gold", _("gold")),
+	("red", _("red")), ("tomato", _("tomato")), ("darkred", _("darkred")), ("indianred", _("indianred")), ("orange", _("orange")), ("darkorange", _("darkorange")), ("orangered", _("orangered")),
+	("green", _("green")), ("lawngreen", _("lawngreen")), ("darkgreen", _("darkgreen")), ("lime", _("lime")), ("lightgreen", _("lightgreen")),
+	("blue", _("blue")), ("blueviolet", _("blueviolet")), ("indigo", _("indigo")), ("darkblue", _("darkblue")), ("cadetblue", _("cadetblue")), ("cornflowerblue", _("cornflowerblue")), ("lightblue", _("lightblue")),
+	("magenta", _("magenta")), ("violet", _("violet")), ("darkorchid", _("darkorchid")), ("deeppink", _("deeppink")), ("cyan", _("cyan")),
+	("brown", _("brown")), ("sandybrown", _("sandybrown")), ("moccasin", _("moccasin")), ("rosybrown", _("rosybrown")), ("olive", _("olive"))
+]
 framesize = NoSave(ConfigInteger(default=0, limits=(0, 9999)))
 thumbsize = NoSave(ConfigInteger(default=200, limits=(100, 999)))
 thumbdelaying = NoSave(ConfigInteger(default=500, limits=(100, 9999)))
@@ -395,7 +399,7 @@ class PictureCenterFS7(Screen, HelpableScreen):
 		if self.exiter == 0:
 			eintr = self["pc_list"].getCurrent()
 			self.art = eintr[5]
-			n_sort = filesort.value
+			# n_sort = filesort.value
 			if self.st_aktiv:
 				if eintr[1] == _("select DIR") or eintr[1] == _("Default dir"):
 					vollbildsets = [fullbildsort.value, infoline.value, playvideo.value, "True2", filesort.value, 0]
@@ -823,7 +827,7 @@ class PictureCenterFS7(Screen, HelpableScreen):
 			self.save_marks3(self)
 
 	def save_marks3(self, answer):
-		if answer == True and self.safe_name:
+		if answer is True and self.safe_name:
 			save_mark(self.session, answer)
 			self.safe_name = ""
 			#self.marker_listen=[i for i in listdir(DATAPATH) if i.endswith('_pcfs.txt')]
@@ -903,10 +907,10 @@ class file_list:
 											xf_date = xf  # mktime(xf)
 									self.Dateiliste2.append((fullpath, name, sortart, True, "file", 1, xf_date[0], xf_date[1]))
 							elif isdir(fullpath):
-								if cache.value == False and fullpath.endswith(".Thumbnails"):
+								if cache.value is False and fullpath.endswith(".Thumbnails"):
 									rmtree(fullpath)
 									adding = 0
-								if subdirs == True and adding == 1:
+								if subdirs is True and adding == 1:
 									directories.append(fullpath)
 								elif str(subdirs) == "True2" and adding == 1:
 									self.Dateiliste.append((fullpath + "/", name, sortart, True, "dir", True, 1, 0))
@@ -950,7 +954,7 @@ class PictureCenterFS7_Edit(Screen, ConfigListScreen, HelpableScreen):
 		path = ""
 		self.configparser = ConfigParser()
 		self.configparser.read(DATAFILE)
-		sections = self.configparser.sections()
+		sections = self.configparser.sections()  # noqa F841
 		self.conf_name = NoSave(ConfigText(default=self.name, fixed_size=False))
 		self.conf_path = NoSave(ConfigText(default=path, fixed_size=False))
 		sortierung1 = filesort.value
@@ -1075,7 +1079,7 @@ class PictureCenterFS7_Edit(Screen, ConfigListScreen, HelpableScreen):
 		try:
 			self.configparser2.add_section(self.conf_name.value)
 			self.save3()
-		except Exception as e:
+		except Exception:
 			self.session.openWithCallback(self.save2, MessageBox, self.conf_name.value + _("Bookmark exist, overwrite?"), MessageBox.TYPE_YESNO)
 
 	def save2(self, answer):
@@ -1141,7 +1145,7 @@ class PictureCenterFS7_Setup2(Screen, ConfigListScreen, HelpableScreen):
 		self.refresh()
 		self.setTitle(titel1)
 		ConfigListScreen.__init__(self, self.liste, on_change=self.reloadList)  # on_change = self.changedEntry)
-		if not self.set_help in self["config"].onSelectionChanged:
+		if self.set_help not in self["config"].onSelectionChanged:
 			self["config"].onSelectionChanged.append(self.set_help)
 
 	def refresh(self):
@@ -1509,7 +1513,7 @@ class Pic_Thumb(Screen, HelpableScreen):
 		Page = 0
 		self.all_liste = piclist
 		for x in piclist:
-#			if x[1] == False:
+#			if x[1] is False:
 			datum = 0
 			if len(x) > 7 and x[7] != "":
 				datum = str(x[7])
@@ -1956,7 +1960,7 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 		self.symb_hideTimer = eTimer()
 		self.maxtime = maxtime.value
 		self.symbol_hide = 0
-		if symbols.value == True:
+		if symbols.value is True:
 			self.symbol_hide = int(symbols_ah.value)
 		if DPKG:
 			self.maxTimer_conn = self.maxTimer.timeout.connect(self.nextPic)
@@ -2014,7 +2018,7 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 		size_h = self.instance.size().height()
 		self["playline"].hide()
 		self.zoom_out()
-		pic_path = SKIN_EXT + "pictures/"
+		# pic_path = SKIN_EXT + "pictures/"
 		self.random_icon = pics2["pcfs_random"]
 		self.play_icon = pics2["pcfs_play"]
 		self.pause_icon = pics2["pcfs_pause"]
@@ -2031,15 +2035,15 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 			size_w2 = self.instance.size().width()
 			size_h = self.instance.size().height()
 
-			bigger = 0
+			# bigger = 0
 
 			#symb_size=(0,0)
-			if self.symbols_on == True:
+			if self.symbols_on is True:
 				if info_size.value == 2:
 					symb_size = (self["play_icon"].instance.size().width(), self["play_icon"].instance.size().height())
 				elif info_size.value == 1:
 					symb_size = (35, 35)
-					bigger = 10
+					# bigger = 10
 					self.random_icon = pics2["b_pcfs_random"]  #+b_pic
 					self.play_icon = pics2["b_pcfs_play"]
 					self.pause_icon = pics2["b_pcfs_pause"]
@@ -2050,7 +2054,7 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 			self["play_icon"].move(ePoint(space_left + 5, self.space_top + 4))
 			text_size = symb_size[1] - 5
 
-			if self.txt != True:
+			if self.txt is not True:
 				self["pic"].resize(eSize(size_w2 - (space * 2), size_h - (space * 2)))
 				self["pic"].move(ePoint(space, space))
 			else:
@@ -2084,7 +2088,7 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 				self["txt_zeile"].instance.setShadowColor(parseColor("#000000"))
 
 		else:
-#                pic_path=SKIN_EXT+"pictures/"
+			# pic_path=SKIN_EXT+"pictures/"
 			self.random_icon = pics2["pcfs_random"]
 			self.play_icon = pics2["pcfs_play"]
 			self.pause_icon = pics2["pcfs_pause"]
@@ -2108,7 +2112,7 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 			self["bgr2"].instance.setPixmapFromFile("/tmp/bgr.png")
 			self["bgr2"].instance.setTransparent(0)
 			self["backline"].instance.setPixmapFromFile("/tmp/tbgr.png")
-		if self.txt != True:
+		if self.txt is not True:
 			self["txt_zeile"].hide()
 			self["backline"].hide()
 			#if self.txt:
@@ -2122,7 +2126,7 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 		if self.slideshow == 0:
 			self["play_icon"].hide()
 
-		if self.txt == True:
+		if self.txt is True:
 			self.set_text(_("please wait, loading picture..."))
 		#sc = getScale()
 		self.picload.setPara([self["pic"].instance.size().width(), self["pic"].instance.size().height(), self.sc[0], self.sc[1], False, 1, self.bgcolor])
@@ -2161,7 +2165,7 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 				self.rot_source = None
 				self.session.open(MessageBox, _("PIL is not installed"), MessageBox.TYPE_INFO, timeout=15)
 			else:
-				if not self.slideTimer.isActive() and self.load == False and self.filelist and self.akt_index:
+				if not self.slideTimer.isActive() and self.load is False and self.filelist and self.akt_index:
 
 					if self.or_index is None:
 						self.or_index = self.akt_index
@@ -2203,7 +2207,7 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 		self.rotat_filetest(2)
 
 	def zoom(self):
-		if not self.slideTimer.isActive() and self.load == False:
+		if not self.slideTimer.isActive() and self.load is False:
 			self.zoom_on = 1
 			self["klo"].show()
 			self["klu"].show()
@@ -2269,7 +2273,7 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 	def blue(self):
 		if self.slideTimer.isActive():
 			self.PlayPause()
-		if not self.slideTimer.isActive() and self.load == False and self.zoom_on == 0 and self.move == 0:
+		if not self.slideTimer.isActive() and self.load is False and self.zoom_on == 0 and self.move == 0:
 			self.zoom_on = 1
 			self["klo"].show()
 			self["klu"].show()
@@ -2363,7 +2367,7 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 					self.session.nav.stopService()
 					self.session.nav.playService(self.altservice)
 					self.move = 0
-					if self.txt == True:
+					if self.txt is True:
 						self["txt_zeile"].show()
 						if z1_bgcolor.value != "transparent":
 							self["backline"].show()
@@ -2393,7 +2397,7 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 				self["txt_zeile"].instance.setTransparent(1)
 				self["playline"].show()
 				self.move = 1
-				if self.txt == True:
+				if self.txt is True:
 					self.set_text(self.currPic[6])
 			self.selectionChanged()
 
@@ -2711,7 +2715,7 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 
 	def prevPic(self):
 		self.moveTimer.stop()
-		if self.load == False:
+		if self.load is False:
 			if self.zoom_on == 1:
 				self.zoom_links()
 			else:
@@ -2847,7 +2851,7 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 		size_w = self.instance.size().width()
 		size_h = self.instance.size().height()
 
-		if self.txt == False:
+		if self.txt is False:
 			self.txt = True
 			zeil = self.zeil_size
 			self["txt_zeile"].show()
@@ -3000,7 +3004,7 @@ class AutoMount():
 				try:
 					data['mounttype'] = 'nfs'
 					data['active'] = getValue(mount.findall("active"), False)
-					if data["active"] == 'True' or data["active"] == True:
+					if data["active"] == 'True' or data["active"] is True:
 						self.activeMountsCounter += 1
 					data['hdd_replacement'] = getValue(mount.findall("hdd_replacement"), "False")
 					data['ip'] = getValue(mount.findall("ip"), "192.168.0.0")
@@ -3019,7 +3023,7 @@ class AutoMount():
 				try:
 					data['mounttype'] = 'cifs'
 					data['active'] = getValue(mount.findall("active"), False)
-					if data["active"] == 'True' or data["active"] == True:
+					if data["active"] == 'True' or data["active"] is True:
 						self.activeMountsCounter += 1
 					data['hdd_replacement'] = getValue(mount.findall("hdd_replacement"), "False")
 					data['ip'] = getValue(mount.findall("ip"), "192.168.0.0")
@@ -3037,7 +3041,7 @@ class AutoMount():
 				automounts = fp.readlines()
 		except Exception:
 			print("[AutoMount.py] /etc/auto.network - opening failed")
-		ipRegexp = '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'
+		ipRegexp = r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'
 		cifsIpLinePattern = compile('://' + ipRegexp + '/')
 		nfsIpLinePattern = compile(ipRegexp + ':/')
 		ipPattern = compile(ipRegexp)
@@ -3080,8 +3084,8 @@ class AutoMount():
 						sharedir = split[2][split[2].index(ip) + len(ip) + 1:]
 					if sharedir is not None:
 						tmpsharedir = sharedir.replace("\\ ", " ")
-						if tmpsharedir[-2:] == "\$":
-							tmpdir = tmpsharedir.replace("\$", "$")
+						if tmpsharedir[-2:] == r"\$":
+							tmpdir = tmpsharedir.replace(r"\$", "$")
 							tmpsharedir = tmpdir
 						data['sharedir'] = tmpsharedir
 				if '-fstype=nfs' in split[1]:
@@ -3095,8 +3099,8 @@ class AutoMount():
 						sharedir = split[2][split[2].index(ip) + len(ip) + 1:]
 					if sharedir is not None:
 						tmpsharedir = sharedir.replace("\\ ", " ")
-						if tmpsharedir[-2:] == "\$":
-							tmpdir = tmpsharedir.replace("\$", "$")
+						if tmpsharedir[-2:] == r"\$":
+							tmpdir = tmpsharedir.replace(r"\$", "$")
 							tmpsharedir = tmpdir
 						data['sharedir'] = tmpsharedir
 				#self.automounts[currshare] = data
