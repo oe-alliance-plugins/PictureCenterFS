@@ -3,12 +3,15 @@ from Tools.Directories import resolveFilename, SCOPE_PLUGINS
 from gettext import bindtextdomain, dgettext, gettext
 
 
+PluginLanguageDomain = "PictureCenterFS"
+
+
 def localeInit():
-	bindtextdomain("PictureCenterFS", resolveFilename(SCOPE_PLUGINS, "Extensions/PictureCenterFS/locale"))
+	bindtextdomain(PluginLanguageDomain, resolveFilename(SCOPE_PLUGINS, "Extensions/PictureCenterFS/locale"))
 
 
 def _(txt):
-	t = dgettext("PictureCenterFS", txt)
+	t = dgettext(PluginLanguageDomain, txt)
 	if t == txt:
 		t = gettext(txt)
 	return t
