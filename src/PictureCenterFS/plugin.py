@@ -25,7 +25,6 @@ from xml.etree.cElementTree import parse as cet_parse
 # ENIGMA IMPORTS
 from enigma import eListboxPythonMultiContent, gFont, RT_HALIGN_LEFT, RT_VALIGN_CENTER, ePoint, eSize, ePicLoad, eTimer, getDesktop, iPlayableService, eServiceReference, gMainDC
 from Components.ActionMap import ActionMap, HelpableActionMap
-from Components.AVSwitch import AVSwitch
 from Components.config import config, ConfigDirectory, ConfigSubsection, ConfigInteger, ConfigSelection, ConfigText, ConfigEnableDisable, getConfigListEntry, NoSave, ConfigSequence, ConfigNothing
 from Components.ConfigList import ConfigListScreen
 from Components.Console import Console
@@ -64,10 +63,6 @@ skin_ext_zusatz = ""
 TYPE_PIC = (".jpg", ".jpeg", ".jpe", ".bmp", ".png")
 TYPE_MOV = (".mpg", ".mov", ".mp4", ".mkv", ".avi", ".mpeg", ".mts", ".m2ts", ".wmv", ".flv")
 # pics = ["txt_pin.png","pic.png","up.png","pin.png","ordner.png","err_pin.png","mov.png","pcfs_play.png","pcfs_random.png","pcfs_pause.png"]
-
-
-def getScale():
-	return AVSwitch().getFramebufferScale()
 
 
 size_w = getDesktop(0).size().width()
@@ -781,8 +776,7 @@ class PictureCenterFS7(Screen, HelpableScreen):
 
 	def setConf(self):
 		self.setTitle("PictureCenterFS " + version)
-		sc = getScale()
-		self.picload.setPara((self["thumb"].instance.size().width(), self["thumb"].instance.size().height(), sc[0], sc[1], cache.value, int(resize.value), bgcolor.value))  # cache.value
+		self.picload.setPara((self["thumb"].instance.size().width(), self["thumb"].instance.size().height(), 1, 1, cache.value, int(resize.value), bgcolor.value))  # cache.value
 		if bgcolor.value != "skin0":
 			if pil_install == "ok" and bgcolor.value != "skin" and bgcolor.value != "transparent":
 				im = Image.new('P', (size_w + 50, size_h + 50), 0)
@@ -1391,8 +1385,7 @@ class Show_Exif(Screen):
 		self.instance.move(ePoint(0, 0))
 		self.instance.resize(eSize(size_w, size_h))
 		self.setTitle(_("Info") + ": " + self.name)
-		sc = getScale()
-		self.picload.setPara((self["thumb"].instance.size().width(), self["thumb"].instance.size().height(), sc[0], sc[1], cache.value, int(resize.value), bgcolor.value))  # cache.value
+		self.picload.setPara((self["thumb"].instance.size().width(), self["thumb"].instance.size().height(), 1, 1, cache.value, int(resize.value), bgcolor.value))  # cache.value
 		self.picload.startDecode(self.path)
 
 	def showPic(self, picInfo=""):
@@ -1547,8 +1540,7 @@ class Pic_Thumb(Screen, HelpableScreen):
 #			self.close(2)
 
 	def setPicloadConf(self):
-		sc = getScale()
-		self.picload.setPara([self["thumb0"].instance.size().width(), self["thumb0"].instance.size().height(), sc[0], sc[1], cache.value, int(resize.value), self.color])
+		self.picload.setPara([self["thumb0"].instance.size().width(), self["thumb0"].instance.size().height(), 1, 1, cache.value, int(resize.value), self.color])
 
 		self.paintFrame()
 
@@ -1864,16 +1856,17 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 		self.size_w = getDesktop(0).size().width()
 		self.size_h = getDesktop(0).size().height()
 		self.oldsize = (self.size_w, self.size_h)
-		if gMainDC and fromskin.value == 2:
+		if gMainDC and fromskin.value == 2 and resolu.value:
 			try:
 				if (self.size_w, self.size_h) != eval(resolu.value):
 					print("[PictureCenterFS] resize screen")
 					gMainDC.getInstance().setResolution(self.size_w, self.size_h)
 					getDesktop(0).resize(eSize(self.size_w, self.size_h))
 					(self.size_w, self.size_h) = (size_w, size_h)
-			except Exception:
-				self.size_w = None
-				print("[PictureCenterFS] resize failed")
+			except Exception as e:
+				self.size_w = getDesktop(0).size().width()
+				self.size_h = getDesktop(0).size().height()
+				print(f"[PictureCenterFS] resize failed: {e}")
 #                elif fromskin.value==1 and resolu.value:
 #                     #(size_w2, size_h2) = eval(resolu.value)
 #                     try:
@@ -1890,7 +1883,6 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 		#	f.write(str(self.size_w)+","+str(self.size_h)+"\n")
 		self.size_w = self.size_w - (framesize.value * 2)
 		self.size_h = self.size_h - (framesize.value * 2)
-		self.sc = AVSwitch().getFramebufferScale()
 		Screen.__init__(self, session)
 		self.skinName = "Pic_Full_View3"
 		self.__event_tracker = ServiceEventTracker(screen=self, eventmap={
@@ -2128,8 +2120,7 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 
 		if self.txt is True:
 			self.set_text(_("please wait, loading picture..."))
-		#sc = getScale()
-		self.picload.setPara([self["pic"].instance.size().width(), self["pic"].instance.size().height(), self.sc[0], self.sc[1], False, 1, self.bgcolor])
+		self.picload.setPara([self["pic"].instance.size().width(), self["pic"].instance.size().height(), 1, 1, False, 1, self.bgcolor])
 		#self.picload.setPara([self.size_w, self.size_h, sc[0], sc[1], False, 1, self.bgcolor])
 		self.start_decode()
 
@@ -2866,7 +2857,7 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 
 		self["pic"].resize(eSize(size_w - (framesize.value * 2), size_h - self.zeil_size - (framesize.value * 2)))
 		self["pic"].move(ePoint(framesize.value, framesize.value + zeil))
-		self.picload.setPara([self["pic"].instance.size().width(), self["pic"].instance.size().height(), self.sc[0], self.sc[1], False, 1, self.bgcolor])
+		self.picload.setPara([self["pic"].instance.size().width(), self["pic"].instance.size().height(), 1, 1, False, 1, self.bgcolor])
 
 	def manipulation_exit(self):
 		if self.zoom_on == 1:
