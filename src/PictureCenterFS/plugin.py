@@ -1860,7 +1860,7 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 		self.size_h = self.size_h - (framesize.value * 2)
 		Screen.__init__(self, session)
 		self.skinName = "Pic_Full_View3"
-		self.__event_tracker = ServiceEventTracker(screen=self, eventmap={iPlayableService.evEOF: self.next_from_mov,})  # alphatest=\"on\" #ackgroundColor=\""+ self.bgcolor +"\" transparent=\"1\"
+		self.__event_tracker = ServiceEventTracker(screen=self, eventmap={iPlayableService.evEOF: self.next_from_mov, })  # alphatest=\"on\" #ackgroundColor=\""+ self.bgcolor +"\" transparent=\"1\"
 		HelpableScreen.__init__(self)
 		t1 = _("not activated")
 		if list_func.value:
@@ -2879,6 +2879,7 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 
 class AutoMount:
 	"""Manages Mounts declared in a XML-Document."""
+
 	def __init__(self):
 		self.automounts = {}
 		self.restartConsole = Console()
