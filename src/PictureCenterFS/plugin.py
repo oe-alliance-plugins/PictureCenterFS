@@ -1,13 +1,14 @@
-######################################
-# PictureCenterFS for VU+            #
-#                                    #
-#   Enigma2 Plugin                   #
-#                                    #
-#  Coded by shadowrider (c)2011      #
-#  Py3-Version: Mr.Servo (@openA.TV) #
-######################################
+#####################################
+#      PictureCenterFS for VU+      #
+#                                   #
+#          Enigma2 Plugin           #
+#                                   #
+#  Coded by shadowrider (c)2011     #
+#  Py3-Version: Mr.Servo @openA.TV  #
+#####################################
 
 # PYTHON IMPORTS
+from configparser import ConfigParser
 from fnmatch import fnmatch
 from os import makedirs, listdir, remove, rename, symlink, unlink, readlink
 from os.path import exists, basename, dirname, isdir, isfile, join, getsize, getmtime, splitext, split, ismount, islink
@@ -20,7 +21,7 @@ from skin import parseColor
 from sys import getrecursionlimit, setrecursionlimit
 from time import strftime, strptime, gmtime, mktime
 from threading import Thread, Lock
-from xml.etree.cElementTree import parse as cet_parse
+from xml.etree.ElementTree import parse as cet_parse
 
 # ENIGMA IMPORTS
 from enigma import eListboxPythonMultiContent, gFont, RT_HALIGN_LEFT, RT_VALIGN_CENTER, ePoint, eSize, ePicLoad, eTimer, getDesktop, iPlayableService, eServiceReference, gMainDC
@@ -37,7 +38,6 @@ from Components.Sources.List import List
 from Components.Sources.StaticText import StaticText
 from Components.ServiceEventTracker import ServiceEventTracker
 from Components.ServicePosition import ServicePositionGauge
-from configparser import ConfigParser
 from Plugins.Plugin import PluginDescriptor
 from Screens.ChoiceBox import ChoiceBox
 from Screens.HelpMenu import HelpableScreen
@@ -50,16 +50,15 @@ from Tools.Directories import SCOPE_SYSETC, SCOPE_PLUGINS, SCOPE_CURRENT_SKIN, r
 from Tools.LoadPixmap import LoadPixmap
 
 # PLUGIN IMPORTS
-from . import _  # for localized messages
+from . import __version__, _  # for localized messages
 from .files import PictureCenterFS7_Filemenu, backup, save_mark
 
-version = "9.0beta"
+MODULE_NAME = __name__.split(".")[-2]
 DPKG = False
 XML_FSTAB = resolveFilename(SCOPE_SYSETC, "enigma2/automounts.xml")
 DATAPATH = resolveFilename(SCOPE_SYSETC, "ConfFS/")
 DATAFILE = join(DATAPATH, "PictureCenterFS.dat")
-SKIN_EXT = resolveFilename(SCOPE_PLUGINS, "Extensions/PictureCenterFS/skin/")
-skin_ext_zusatz = ""
+SKINPATH = resolveFilename(SCOPE_PLUGINS, "Extensions/PictureCenterFS/skin/")
 TYPE_PIC = (".jpg", ".jpeg", ".jpe", ".bmp", ".png")
 TYPE_MOV = (".mpg", ".mov", ".mp4", ".mkv", ".avi", ".mpeg", ".mts", ".m2ts", ".wmv", ".flv")
 # pics = ["txt_pin.png","pic.png","up.png","pin.png","ordner.png","err_pin.png","mov.png","pcfs_play.png","pcfs_random.png","pcfs_pause.png"]
@@ -68,23 +67,23 @@ TYPE_MOV = (".mpg", ".mov", ".mp4", ".mkv", ".avi", ".mpeg", ".mts", ".m2ts", ".
 size_w = getDesktop(0).size().width()
 size_h = getDesktop(0).size().height()
 if size_w > 1850:
-	skin_ext_zusatz = "fHD/"
+	RESOLUTION = "FHD"
 	font1 = 30
 	font2 = 18
 	zeil_high = 40
 else:
-	skin_ext_zusatz = "HD/"
+	RESOLUTION = "HD"
 	font1 = 26
 	font2 = 18
 	zeil_high = 30
-icon_path = SKIN_EXT + skin_ext_zusatz + "pictures/"
-icon_path1 = SKIN_EXT + "pictures/"
+icon_path = f"{SKINPATH}/{RESOLUTION}/pictures/"
+icon_path1 = f"{SKINPATH}/pictures/"
 pics2 = {
 	"txt_pin": icon_path + "txt_pin.png", "pic": icon_path + "pic.png", "up": icon_path + "up.png", "pin": icon_path + "pin.png",
 	"ordner": icon_path + "ordner.png", "err_pin": icon_path + "err_pin.png", "mov": icon_path1 + "mov.png",
 	"pcfs_play": icon_path1 + "pcfs_play.png", "pcfs_random": icon_path1 + "pcfs_random.png", "pcfs_pause": icon_path1 + "pcfs_pause.png",
 	"b_pcfs_play": icon_path1 + "b_pcfs_play.png", "b_pcfs_random": icon_path1 + "b_pcfs_random.png", "b_pcfs_pause": icon_path1 + "b_pcfs_pause.png"
-}
+	}
 if exists(resolveFilename(SCOPE_CURRENT_SKIN, "Extensions/PictureCenterFS/pictures")):
 	for k in pics2.keys():
 		fl = "Extensions/PictureCenterFS/pictures/" + k + ".png"
@@ -150,7 +149,7 @@ std_read_sub = NoSave(ConfigEnableDisable(default=True))
 playvideo = NoSave(ConfigEnableDisable(default=False))
 fromskin = NoSave(ConfigSelection(default=1, choices=[(2, _("from settings")), (1, _("from skin"))]))
 osd_alpha_off = NoSave(ConfigEnableDisable(default=True))
-resolu = NoSave(ConfigSelection(default=None, choices=[(None, _("Same resolution as skin")), ("(720, 576)", "720x576"), ("(1280, 720)", "1280x720"), ("(1920, 1080)", "1920x1080"), ("(4096, 2160)", "4096x2160")]))  #, ("(4096, 2160)", "4096x2160")
+resolu = NoSave(ConfigSelection(default=None, choices=[(None, _("Same resolution as skin")), ("(720, 576)", "720x576"), ("(1280, 720)", "1280x720"), ("(1920, 1080)", "1920x1080"), ("(4096, 2160)", "4096x2160")]))  # , ("(4096, 2160)", "4096x2160")
 pil_vers = Image.__version__
 if pil_vers < "1.1.6":
 	pil_install = "veraltet"
@@ -172,31 +171,32 @@ if not exists(DATAFILE):
 configparser1 = ConfigParser()
 configparser1.read(DATAFILE)
 if configparser1.has_section("settings"):
-	l1 = configparser1.items("settings")
-	for nam in l1:
-		if nam[1].strip() == "True":
-			vars()[nam[0]].value = True   #True
-		elif nam[1].strip() == "False" or nam[1].strip() == "None":
-			vars()[nam[0]].value = False
-		elif nam[0].strip() == "filesort":
-			if ("date" in nam[1] and pil_install != "ok") or "random" in nam[1] or "all" in nam[1]:
+	for section, key in configparser1.items("settings"):
+		strip_key = key.strip()
+		strip_section = section.strip()
+		if strip_section == "True":
+			locals()[key].value = True
+		elif strip_section == "False" or strip_section == "None":
+			locals()[key].value = False
+		elif strip_key == "filesort":
+			if ("date" in section and pil_install != "ok") or "random" in section or "all" in section:
 				filesort.value = "name"
 			else:
-				filesort.value = nam[1].strip().lower()
-		elif nam[0].strip() == "fullbildsort":
-			if ("date" in nam[1] and pil_install != "ok"):
+				filesort.value = strip_section.lower()
+		elif strip_key == "fullbildsort":
+			if ("date" in section and pil_install != "ok"):
 				fullbildsort.value = "name"
 			else:
-				fullbildsort.value = nam[1].strip().lower()
-		elif nam[0].strip() == "distance_infoline2":
-			i1 = nam[1].replace("[", "").replace("]", "").split(",")
+				fullbildsort.value = strip_section.lower()
+		elif strip_key == "distance_infoline2":
+			i1 = section.replace("[", "").replace("]", "").split(",")
 			i_space = [int(i1[0]), int(i1[1])]
 			distance_infoline2.value = i_space
 		else:
-			try:
-				vars()[nam[0]].value = int(nam[1].strip())
-			except Exception:
-				vars()[nam[0]].value = nam[1]
+			strip_section = strip_section
+			if strip_section.isdigit():
+				set_section = int(strip_section) if strip_section.isdigit() else strip_section
+				locals()[key].value = set_section
 vollbildsets = [fullbildsort.value, infoline.value, playvideo.value, std_read_sub.value, filesort.value]
 exclude = ()
 if len(excludeconf.value.strip()):
@@ -204,14 +204,14 @@ if len(excludeconf.value.strip()):
 
 
 class PictureCenterFS7(Screen, HelpableScreen):
-	with open(SKIN_EXT + skin_ext_zusatz + "pcfs.xml") as tmpskin:
+	with open(f"{SKINPATH}/{RESOLUTION}/pcfs.xml") as tmpskin:
 		skin = tmpskin.read()
 
-	def __init__(self, session,):
+	def __init__(self, session):
 		self.alt_osd_alpha = None
 		self.markfile = None
 		if osd_alpha_off.value:
-			self.alt_osd_alpha = str(open("/proc/stb/video/alpha", "r").read().strip())
+			self.alt_osd_alpha = str(open("/proc/stb/video/alpha").read().strip())
 			open("/proc/stb/video/alpha", "w").write(str(255))
 		Screen.__init__(self, session)
 		self.skinName = "PictureCenterFS7"
@@ -276,14 +276,14 @@ class PictureCenterFS7(Screen, HelpableScreen):
 		self.onLayoutFinish.append(self.start)
 
 	def check_failed(self):
-		self.session.openWithCallback(self.KeyExit, MessageBox, _("Modul PIL is not installed!\nPlease install current version of python-imaging from feed\nor install PIL > 1.1.5"), type=MessageBox.TYPE_ERROR)
+		self.session.openWithCallback(self.KeyExit, MessageBox, _("Modul PIL is not installed!\nPlease install current version of python-imaging from feed\nor install PIL > 1.1.5"), type=MessageBox.TYPE_ERROR, timeout=3, close_on_any_key=True)
 
 	def sel_sort(self):
 		sb = [(_("Name"), "name"), (_("Name reverse"), "revers")]
 		if pil_install == "ok":
 			sb.append((_("record date forward"), "date"))
 			sb.append((_("record date descending"), "date_reverse"))
-		self.session.openWithCallback(self.sel_sortCallback, ChoiceBox, title=_("PictureCenterFS - Sort"), list=sb)
+		self.session.openWithCallback(self.sel_sortCallback, ChoiceBox, title=f"PictureCenterFS - {_('Sort')}", list=sb)
 
 	def sel_sortCallback(self, ret=None):
 		global vollbildsets
@@ -301,10 +301,8 @@ class PictureCenterFS7(Screen, HelpableScreen):
 		self.filelist = []
 		if pil_install != "ok":
 			msgtxt = []
-			if pil_install == "veraltet":
-				msgtxt.append("Modul PIL Version is too old!")
-			else:
-				msgtxt.append("Modul PIL is not installed!")
+			txt = "Modul PIL Version is too old!" if pil_install == "veraltet" else "Modul PIL is not installed!"
+			msgtxt.append(txt)
 			for txt in msgtxt + [" ", "Please install current version", "of python-imaging from feed", "  or", "install PIL Version > 1.1.5"]:
 				self.list.append(("/tmp", txt, 0, "all", False, "bookmark", 2, False, False, None))
 		else:
@@ -320,30 +318,30 @@ class PictureCenterFS7(Screen, HelpableScreen):
 					self.sortierung = vollbildsets[4]  # "all"
 					self.infoline = infoline.value
 					self.videoplay = playvideo.value
-					l1 = self.configparser2.items(section)
-					for nam in l1:
-						ndex = 0
-						if nam[1].strip() == "True":
-							vars()[nam[0]] = True   # True
-						elif nam[1].strip() == "False":
-							vars()[nam[0]] = False
-						elif nam[0] == "index":
-							ndex = int(nam[1].strip())
+					index = 0
+					for section, key in self.configparser2.items(section):
+						strip_section = section.strip()
+						if strip_section == "True":
+							locals()[key] = True
+						elif strip_section == "False":
+							locals()[key] = False
+						elif key == "index":
+							index = int(strip_section)
 						else:
-							vars()[nam[0]] = nam[1].strip()
+							locals()[key] = strip_section
 					if pathExists(self.path):
 						online = 1
 						pinpng = LoadPixmap(pics2["pin"])
 					else:
 						pinpng = LoadPixmap(pics2["err_pin"])
-					eintrag = (self.path, section, 0, self.sortierung, self.read_sub, "bookmark", online, self.infoline, self.videoplay, pinpng, ndex)
+					eintrag = (self.path, section, 0, self.sortierung, self.read_sub, "bookmark", online, self.infoline, self.videoplay, pinpng, index)
 					self.list.append(eintrag)
 			#self.list.sort()
 			self.set_sortText()
 			txtPin = LoadPixmap(pics2["txt_pin"])
 			dirpng = LoadPixmap(pics2["ordner"])
 			self.list.sort(key=lambda x: x[1].lower())
-			self.list.insert(0, (default_dir.value, _("select DIR"), None, vollbildsets[4], "True2", "dirs", 1, None, infoline.value, dirpng, 0))
+			self.list.insert(0, (default_dir.value, _("select DIR"), None, vollbildsets[4], "True", "dirs", 1, None, infoline.value, dirpng, 0))
 			online = 0
 			pinpng = LoadPixmap(pics2["err_pin"])
 			if pathExists(default_dir.value):
@@ -357,7 +355,7 @@ class PictureCenterFS7(Screen, HelpableScreen):
 						self.list.append((DATAPATH + x, basename(x.strip()), 0, None, False, "filelist", 1, infoline.value, playvideo.value, txtPin))
 		self.st_aktiv = True
 		self["pc_list"].setList(self.list)
-		self.setTitle("PictureCenterFS" + "  " + version)
+		self.setTitle(f"PictureCenterFS {__version__}")
 
 	def KeyExit(self):
 		if self.list[0][5] == 'back' or (self.filelist and len(self.filelist)):
@@ -397,7 +395,7 @@ class PictureCenterFS7(Screen, HelpableScreen):
 			# n_sort = filesort.value
 			if self.st_aktiv:
 				if eintr[1] == _("select DIR") or eintr[1] == _("Default dir"):
-					vollbildsets = [fullbildsort.value, infoline.value, playvideo.value, "True2", filesort.value, 0]
+					vollbildsets = [fullbildsort.value, infoline.value, playvideo.value, "True", filesort.value, 0]
 				else:
 				#if eintr[5]=="bookmark":
 					vollbildsets = [eintr[3], eintr[7], eintr[8], eintr[4], eintr[3]]
@@ -481,7 +479,7 @@ class PictureCenterFS7(Screen, HelpableScreen):
 		self["button_yellow"].hide()
 		if self["pc_list"].getCurrent() and self["pc_list"].getCurrent()[5] == "bookmark" and self["pc_list"].getCurrent()[6] == 0:
 			self["button_green"].show()
-			self["key_green"].setText("refresh mounts")
+			self["key_green"].setText(_("refresh mounts"))
 		else:
 			self["button_green"].hide()
 			self["key_green"].setText("")
@@ -522,7 +520,7 @@ class PictureCenterFS7(Screen, HelpableScreen):
 			if self.art == "bookmark":
 				if akt_bm[6] == 0:
 					self.mount_restart()
-					#self.session.open(MessageBox,_("If a mapped drive is not ready to join, please to join/turn on.\n\nIf the device is ready to please run via menu 'refresh mounts'."), MessageBox.TYPE_INFO)
+					#self.session.open(MessageBox,_("If a mapped drive is not ready to join, please to join/turn on.\n\nIf the device is ready to please run via menu 'refresh mounts'."), MessageBox.TYPE_INFO, timeout=3, close_on_any_key=True)
 				else:
 					self.session.openWithCallback(self.nopic, Pic_Full_View3, akt_bm[0], 0, None, 1, self.markfile)
 			if self.art == "dir" or self.art == "filelist":  # or self.art=="ouverDir":
@@ -566,18 +564,18 @@ class PictureCenterFS7(Screen, HelpableScreen):
 				self.session.open(Pic_Full_View3, self.dirname, index_nr, piclist, 0, file_bez)
 			elif self.art == "bookmark" or self.art == "filelist" or self.art == "dir" or self.art == "ouverDir":
 				akt_bm = self["pc_list"].getCurrent()
-				ndex = 0
+				index = 0
 				if self.art == "bookmark":
-					ndex = self["pc_list"].getCurrent()[10]
+					index = self["pc_list"].getCurrent()[10]
 				#self.session.openWithCallback(self.nopic,Pic_Full_View3,akt_bm[0],0,self.markfile,0)
 				#self.session.openWithCallback(self.nopic,Pic_Full_View3,akt_bm[0],akt_bm[1],vollbildsets[5],self.markfile,1)
-				self.session.openWithCallback(self.nopic, Pic_Full_View3, akt_bm[0], ndex, self.markfile, 0)
+				self.session.openWithCallback(self.nopic, Pic_Full_View3, akt_bm[0], index, self.markfile, 0)
 			elif self.art == "back":
 				self.start()
 
 	def Full_View_back(self, args=None):
 		if osd_alpha_off.value:
-			self.alt_osd_alpha = str(open("/proc/stb/video/alpha", "r").read().strip())
+			self.alt_osd_alpha = str(open("/proc/stb/video/alpha").read().strip())
 			open("/proc/stb/video/alpha", "w").write(str(255))
 
 	def KeyOk(self):
@@ -600,7 +598,7 @@ class PictureCenterFS7(Screen, HelpableScreen):
 			if self["pc_list"].getCurrent()[6] == 2:
 				self.close()
 			elif self["pc_list"].getCurrent()[6] == 0:
-				self.session.open(MessageBox, _("If a mapped drive is not ready to join, please to join/turn on.\n\nIf the device is ready to please run via menu 'refresh mounts'."), MessageBox.TYPE_INFO)
+				self.session.open(MessageBox, _("If a mapped drive is not ready to join, please to join/turn on.\n\nIf the device is ready to please run via menu 'refresh mounts'."), MessageBox.TYPE_INFO, timeout=3, close_on_any_key=True)
 			else:
 				if default_ok.value.strip() == "Folder- and Filelist":
 					self.KeyRed()
@@ -615,7 +613,7 @@ class PictureCenterFS7(Screen, HelpableScreen):
 	def nopic(self, call):
 		self.Full_View_back()
 		if call:
-			self.session.open(MessageBox, _("No Picture found on in this Dir"), MessageBox.TYPE_INFO)
+			self.session.open(MessageBox, _("No Picture found on in this Dir"), MessageBox.TYPE_INFO, timeout=3, close_on_any_key=True)
 
 	def path_wahl(self):
 		self.session.openWithCallback(self.Pic_tools_back, BackupLocationBox, _("Please select path..."), default_dir.value, "")
@@ -639,7 +637,7 @@ class PictureCenterFS7(Screen, HelpableScreen):
 			menu.append((_('Backup ConfFS-Dir'), self.backup))
 			menu.append((_('Restore ConfFS-Dir'), self.restore))
 			menu.append((_("About"), self.showAbout))
-			self.session.openWithCallback(self.menuCallback, ChoiceBox, title=_("PictureCenterFS - Menu"), list=menu)
+			self.session.openWithCallback(self.menuCallback, ChoiceBox, title=f"PictureCenterFS - {_('Menu')}", list=menu)
 
 	def showMarkerMenu(self):
 		menu = []
@@ -648,7 +646,7 @@ class PictureCenterFS7(Screen, HelpableScreen):
 			menu.append((_('Save temporary marked list'), self.save_marks))
 			if len(self.marker_listen):
 				menu.append((_('Delete saved list'), self.delete_marks))
-			self.session.openWithCallback(self.menuCallback, ChoiceBox, title=_("PictureCenterFS - ") + _('Options for picture lists'), list=menu)
+			self.session.openWithCallback(self.menuCallback, ChoiceBox, title=f"PictureCenterFS - {_('Options for picture lists')}", list=menu)
 
 	def menuCallback(self, choice):
 		if choice is not None:
@@ -671,27 +669,25 @@ class PictureCenterFS7(Screen, HelpableScreen):
 		configparser1 = ConfigParser()
 		configparser1.read(DATAFILE)
 		if configparser1.has_section("settings"):
-			l1 = configparser1.items("settings")
-			for nam in l1:
-				if nam[0].strip() != "distance_infoline":
-					if nam[1].strip() == "True":
-						vars()[nam[0]].value = True   #True
-					elif nam[1].strip() == "False":
-						vars()[nam[0]].value = False
-					elif nam[0].strip() == "filesort":
-						if "date" in nam[1] and pil_install != "ok":
+			for section, key in configparser1.items("settings"):
+				if configparser1.has_option(section, key) and configparser1.get(section, key):
+					if strip_section == "True":
+						locals()[key].value = True  # True
+					elif strip_section == "False":
+						locals()[key].value = False
+					elif strip_key == "filesort":
+						if "date" in section and pil_install != "ok":
 							filesort.value = "name"
 						else:
-							filesort.value = nam[1].strip()
-					elif nam[0].strip() == "distance_infoline2":
-						i1 = nam[1].replace("[", "").replace("]", "").split(",")
+							filesort.value = strip_section
+					elif strip_key == "distance_infoline2":
+						i1 = section.replace("[", "").replace("]", "").split(",")
 						i_space = [int(i1[0]), int(i1[1])]
 						distance_infoline2.value = i_space
 					else:
-						try:
-							vars()[nam[0]].value = int(nam[1].strip())
-						except Exception:
-							vars()[nam[0]].value = nam[1]
+						nam1 = strip_section
+						set_nam1 = int(nam1) if nam1.isdigit() else nam1
+						locals()[key].value = set_nam1
 			vollbildsets = [fullbildsort.value, infoline.value, playvideo.value, std_read_sub.value, filesort.value]
 			exclude = ()
 			if len(excludeconf.value.strip()):
@@ -712,7 +708,7 @@ class PictureCenterFS7(Screen, HelpableScreen):
 			if isdir(self["pc_list"].getCurrent()[0]):
 				self.session.open(PictureCenterFS7_Edit, name=self["pc_list"].getCurrent()[0], neu=2)
 			else:
-				self.session.open(MessageBox, _("no valid directory"), MessageBox.TYPE_INFO)
+				self.session.open(MessageBox, _("no valid directory"), MessageBox.TYPE_INFO, timeout=3, close_on_any_key=True)
 
 	def Pic_tools_back(self, path1=None, selection=0, sortin=filesort.value):
 		if path1:
@@ -744,12 +740,12 @@ class PictureCenterFS7(Screen, HelpableScreen):
 			self.nlist.insert(0, ("Bookmarks", _("back to Bookmarks"), None, sortin, False, "back", None, None, None, bmpng, 0))
 			if not self.markfile:
 				# o_anz+=1
-				self.nlist.insert(1, ('/'.join(path1.split('/')[:-2]) + '/', "<" + _("Parent Directory") + ">", None, sortin, std_read_sub, "ouverDir", 1, 0, None, odirpng, 0))       #_("Current Dir")
+				self.nlist.insert(1, ('/'.join(path1.split('/')[:-2]) + '/', "<" + _("Parent Directory") + ">", None, sortin, std_read_sub, "ouverDir", 1, 0, None, odirpng, 0))  # _("Current Dir")
 			self.st_aktiv = False
 			self["pc_list"].setList(self.nlist)
 			selnr = selection + o_anz
-			with open("/tmp/004.txt", "a") as f:
-				f.write("%s, %s, %s\n" % (selnr, selection, len(self.nlist)))
+			with open("/tmp/004.txt", "a") as file:
+				file.write(f"{selnr}, {selection}, {len(self.nlist)}\n")
 			if len(self.nlist) <= selnr or selection == 0:
 				selnr = 0
 			if selnr > 0:
@@ -765,7 +761,7 @@ class PictureCenterFS7(Screen, HelpableScreen):
 		self.ThumbTimer.stop()
 		pic = None
 		if self["pc_list"].getCurrent()[0].lower().endswith(TYPE_MOV):
-			pic = SKIN_EXT + "/pictures/mov.jpg"
+			pic = SKINPATH + "/pictures/mov.jpg"
 		elif self["pc_list"].getCurrent()[0].lower().endswith(TYPE_PIC):
 			pic = self["pc_list"].getCurrent()[0]
 		if pic:
@@ -775,7 +771,7 @@ class PictureCenterFS7(Screen, HelpableScreen):
 				self.picload.startDecode(pic)
 
 	def setConf(self):
-		self.setTitle("PictureCenterFS " + version)
+		self.setTitle(f"PictureCenterFS {__version__}")
 		self.picload.setPara((self["thumb"].instance.size().width(), self["thumb"].instance.size().height(), 1, 1, cache.value, int(resize.value), bgcolor.value))  # cache.value
 		if bgcolor.value != "skin0":
 			if pil_install == "ok" and bgcolor.value != "skin" and bgcolor.value != "transparent":
@@ -801,7 +797,7 @@ class PictureCenterFS7(Screen, HelpableScreen):
 			filelist1 = file_list(dates[0]).Dateiliste2
 			anz = len(filelist1)
 			text = str(anz) + " " + _("pictures in") + "\n" + dates[0]
-			self.session.open(MessageBox, text, MessageBox.TYPE_INFO)
+			self.session.open(MessageBox, text, MessageBox.TYPE_INFO, timeout=3, close_on_any_key=True)
 
 	def leere_marks(self, args=None):
 		open("/tmp/pcfs_mark", "w").close()
@@ -813,10 +809,10 @@ class PictureCenterFS7(Screen, HelpableScreen):
 		self.safe_name = ""
 		if name:
 			name = name.split(".")
-			self.safe_name = "%s_pcfs.txt" % name[0]
+			self.safe_name = f"{name[0]}_pcfs.txt"
 		if pathExists(join(DATAPATH, self.safe_name)):
 			self.safe_name = name
-			self.session.openWithCallback(self.save_marks3, MessageBox, _("file exist on this path, overwrite?"), MessageBox.TYPE_YESNO)
+			self.session.openWithCallback(self.save_marks3, MessageBox, _("file exist on this path, overwrite?"), MessageBox.TYPE_YESNO, default=False, timeout=3)
 		else:
 			self.save_marks3(self)
 
@@ -829,12 +825,12 @@ class PictureCenterFS7(Screen, HelpableScreen):
 
 	def delete_marks(self):
 		listen = [[x, DATAPATH + x] for x in self.marker_listen]
-		self.session.openWithCallback(self.delete_marks2, ChoiceBox, title=_("PictureCenterFS - ") + _('Delete picture list file'), list=listen)
+		self.session.openWithCallback(self.delete_marks2, ChoiceBox, title=f"PictureCenterFS - {_('Delete picture list file')}", list=listen)
 
 	def delete_marks2(self, answer):
 		if answer:
 			self.del_file = answer[1]
-			self.session.openWithCallback(self.delete_marks3, MessageBox, _("File") + "\n" + answer[0] + "\n" + _("really delete?"), MessageBox.TYPE_YESNO)
+			self.session.openWithCallback(self.delete_marks3, MessageBox, _("File") + "\n" + answer[0] + "\n" + _("really delete?"), MessageBox.TYPE_YESNO, default=False, timeout=3)
 
 	def delete_marks3(self, answer):
 		if answer and self.del_file:
@@ -844,19 +840,18 @@ class PictureCenterFS7(Screen, HelpableScreen):
 
 	def texteingabeFinished(self, ret):
 		if ret is not None:
-			self.conf_name.value = ret
+			self.conf_name.value = str(ret)
 
 	def showAbout(self, args=None):
-		self.session.open(MessageBox, "PictureCenterFS\nAutor: shadowrider\n", MessageBox.TYPE_INFO)
+		self.session.open(MessageBox, f"PictureCenterFS {__version__}\nAutor: shadowrider\nPy3-Version: Mr.Servo\n", MessageBox.TYPE_INFO, timeout=3, close_on_any_key=True)
 
 
-######################################################################
 class file_list:
 	def __init__(self, path, spez=None):
 		sortart = vollbildsets[4]
 		subdirs = vollbildsets[3]
 		if spez:
-			subdirs = "True2"
+			subdirs = "True"
 		videoplay = vollbildsets[2]
 		#if not sortart:
 		#   sortart=aktsortin
@@ -886,7 +881,7 @@ class file_list:
 						fullpath = join(directory, name)
 						if not excludes and not name.startswith(".") and not fullpath.startswith(".") and not name.startswith("@"):
 							if isfile(fullpath) and getsize(fullpath) > 0:
-								if name.lower().endswith(typ_list) and fullpath != '/tmp/bgr.png':  #,"gif"
+								if name.lower().endswith(typ_list) and fullpath != '/tmp/bgr.png':  # ,"gif"
 									xf_date = (0, "")
 									xf = None
 									if "date" in sortart:
@@ -906,8 +901,8 @@ class file_list:
 									adding = 0
 								if subdirs is True and adding == 1:
 									directories.append(fullpath)
-								elif str(subdirs) == "True2" and adding == 1:
-									self.Dateiliste.append((fullpath + "/", name, sortart, True, "dir", True, 1, 0))
+								elif str(subdirs) == "True" and adding == 1:
+									self.Dateiliste.append((f"{fullpath}/", name, sortart, True, "dir", True, 1, 0))
 		if "date" in sortart:
 			self.Dateiliste2.sort(key=lambda x: x[6])
 		elif sortart == "name" or sortart == "revers":
@@ -936,7 +931,7 @@ class file_list:
 
 
 class PictureCenterFS7_Edit(Screen, ConfigListScreen, HelpableScreen):
-	with open(SKIN_EXT + skin_ext_zusatz + "pcFS_setup.xml") as tmpskin:
+	with open(f"{SKINPATH}/{RESOLUTION}/pcFS_setup.xml") as tmpskin:
 		skin = tmpskin.read()
 
 	def __init__(self, session, name="", neu=0):
@@ -948,7 +943,6 @@ class PictureCenterFS7_Edit(Screen, ConfigListScreen, HelpableScreen):
 		path = ""
 		self.configparser = ConfigParser()
 		self.configparser.read(DATAFILE)
-		sections = self.configparser.sections()  # noqa F841
 		self.conf_name = NoSave(ConfigText(default=self.name, fixed_size=False))
 		self.conf_path = NoSave(ConfigText(default=path, fixed_size=False))
 		sortierung1 = filesort.value
@@ -957,25 +951,24 @@ class PictureCenterFS7_Edit(Screen, ConfigListScreen, HelpableScreen):
 		self.conf_sortierung = NoSave(ConfigSelection(default=sortierung1, choices=sorten2))
 		#else:
 		#    self.conf_sortierung=NoSave(ConfigSelection(default=sortierung, choices = [("all", _("None")), ("Random", _("Random")), ("Name", _("Name")), ("revers", _("Name reverse"))]))
-		self.conf_read_subdirs = NoSave(ConfigEnableDisable(default=True))
-		self.conf_infoline = NoSave(ConfigEnableDisable(default=True))
-		self.conf_videoplay = NoSave(ConfigEnableDisable(default=False))
-		titel1 = " PictureCenterFS - " + _("New Bookmark")
+		self.conf_read_subdirs = NoSave(ConfigText(default="True"))
+		self.conf_infoline = NoSave(ConfigText(default="True"))
+		self.conf_videoplay = NoSave(ConfigText(default="True"))
+		titel1 = f"PictureCenterFS - {_('New Bookmark')}"
 		if self.neu == 0:
-			self.name = name
-			titel1 = " PictureCenterFS - " + _("Edit Bookmark")
-			if name != "" and self.configparser.has_section(self.name):
+			self.name = name.replace("True2", "True")  # compensate an error of earlier versions < 9.0
+			titel1 = f"PictureCenterFS - {_('Edit Bookmark')}"
+			if name and self.configparser.has_section(self.name):
 				self.conf_name.setValue(name)
 				self.conf_path.setValue(self.configparser.get(self.name, "path"))
-				if self.configparser.has_option(self.name, "sortierung"):
+				if self.configparser.has_option(self.name, "sortierung") and self.configparser.get(self.name, "sortierung"):
 					self.conf_sortierung.value = self.configparser.get(self.name, "sortierung")
-				if self.configparser.has_option(self.name, "read_sub"):
+				if self.configparser.has_option(self.name, "read_sub") and self.configparser.get(self.name, "read_sub"):
 					self.conf_read_subdirs.value = self.configparser.getboolean(self.name, "read_sub")
-				if self.configparser.has_option(self.name, "infoline"):
+				if self.configparser.has_option(self.name, "infoline") and self.configparser.get(self.name, "infoline"):
 					self.conf_infoline.value = self.configparser.getboolean(self.name, "infoline")
-				if self.configparser.has_option(self.name, "videoplay"):
+				if self.configparser.has_option(self.name, "videoplay") and self.configparser.get(self.name, "videoplay"):
 					self.conf_videoplay.value = self.configparser.getboolean(self.name, "videoplay")
-								#if self.configparser.get(self.name, "read_sub")=="False":self.conf_read_subdirs.value=False
 		elif self.neu == 2:
 			self.name = ""
 			self.conf_path.value = name
@@ -1018,16 +1011,11 @@ class PictureCenterFS7_Edit(Screen, ConfigListScreen, HelpableScreen):
 		if self.cur == self.conf_path:  # or self.cur==self.conf_genre2:
 			self.path_wahl()
 		elif self.cur == self.conf_name:
-			self.session.openWithCallback(
-						self.texteingabeFinished,
-						VirtualKeyBoard,
-						title=_("Enter Bookmark-Name:"),
-						text=self.conf_name.value
-				)
+			self.session.openWithCallback(self.texteingabeFinished, VirtualKeyBoard, title=_("Enter Bookmark-Name:"), text=self.conf_name.value)
 
 	def texteingabeFinished(self, ret):
 		if ret is not None:
-			self.conf_name.value = ret
+			self.conf_name.value = str(ret)
 
 	def path_wahl(self):
 		self.session.openWithCallback(self.call_path, BackupLocationBox, _("Please select the Bookmark path..."), "")
@@ -1038,27 +1026,26 @@ class PictureCenterFS7_Edit(Screen, ConfigListScreen, HelpableScreen):
 
 	def red_button(self):
 		if len(self.conf_name.value) > 0:
-			self.session.openWithCallback(self.delete2, MessageBox, self.name + _("Delete Bookmark really?"), MessageBox.TYPE_YESNO)
+			self.session.openWithCallback(self.delete2, MessageBox, self.name + _("Delete Bookmark really?"), MessageBox.TYPE_YESNO, default=False, timeout=3)
 
 	def delete2(self, call):
 		if call:
 			self.configparser.remove_section(self.name)
-			with open(DATAFILE, "w") as fp:
-				self.configparser.write(fp)
+			with open(DATAFILE, "w") as file:
+				self.configparser.write(file)
 			self.close()
 
 	def save(self):
 		if len(self.conf_name.value) > 0:
 			filelist1 = file_list(self.conf_path.value).Dateiliste2
 			if not isdir(self.conf_path.value):
-				self.session.open(MessageBox, _("Path failed"), MessageBox.TYPE_ERROR)
+				self.session.open(MessageBox, _("Path failed"), MessageBox.TYPE_ERROR, timeout=3, close_on_any_key=True)
 			elif len(filelist1) < 1:
-				self.session.openWithCallback(self.no_pic, MessageBox, _("No Picture in this dir"), MessageBox.TYPE_YESNO)
-
+				self.session.openWithCallback(self.no_pic, MessageBox, _("No Picture in this dir"), MessageBox.TYPE_YESNO, default=False, timeout=3)
 			else:
 				self.save1()
 		else:
-			self.session.open(MessageBox, _("No Name!"), MessageBox.TYPE_ERROR)
+			self.session.open(MessageBox, _("No Name!"), MessageBox.TYPE_ERROR, timeout=3, close_on_any_key=True)
 
 	def no_pic(self, answer):
 		if answer:
@@ -1069,12 +1056,12 @@ class PictureCenterFS7_Edit(Screen, ConfigListScreen, HelpableScreen):
 		self.configparser2.read(DATAFILE)
 		if len(self.altname) > 0 and self.configparser2.has_section(self.altname):
 			self.configparser2.remove_section(self.altname)
-			self.session.openWithCallback(self.save2, MessageBox, self.altname + _("Bookmark overwrite?"), MessageBox.TYPE_YESNO)
+			self.session.openWithCallback(self.save2, MessageBox, self.altname + _("Bookmark overwrite?"), MessageBox.TYPE_YESNO, default=False, timeout=3)
 		try:
 			self.configparser2.add_section(self.conf_name.value)
 			self.save3()
 		except Exception:
-			self.session.openWithCallback(self.save2, MessageBox, self.conf_name.value + _("Bookmark exist, overwrite?"), MessageBox.TYPE_YESNO)
+			self.session.openWithCallback(self.save2, MessageBox, self.conf_name.value + _("Bookmark exist, overwrite?"), MessageBox.TYPE_YESNO, default=False, timeout=3)
 
 	def save2(self, answer):
 		if answer:
@@ -1086,12 +1073,12 @@ class PictureCenterFS7_Edit(Screen, ConfigListScreen, HelpableScreen):
 
 	def save3(self):
 		self.configparser2.set(self.conf_name.value, "path", self.conf_path.value)
-		self.configparser2.set(self.conf_name.value, "read_sub", self.conf_read_subdirs.value)
+		self.configparser2.set(self.conf_name.value, "read_sub", str(self.conf_read_subdirs.value))
 		self.configparser2.set(self.conf_name.value, "sortierung", self.conf_sortierung.value)
-		self.configparser2.set(self.conf_name.value, "infoline", self.conf_infoline.value)
-		self.configparser2.set(self.conf_name.value, "videoplay", self.conf_videoplay.value)
-		with open(DATAFILE, "w") as fp:
-			self.configparser2.write(fp)
+		self.configparser2.set(self.conf_name.value, "infoline", str(self.conf_infoline.value))
+		self.configparser2.set(self.conf_name.value, "videoplay", str(self.conf_videoplay.value))
+		with open(DATAFILE, "w") as file:
+			self.configparser2.write(file)
 		self.close()
 
 
@@ -1100,13 +1087,10 @@ class BackupLocationBox(LocationBox):
 		inhibitDirs = ["/bin", "/boot", "/dev", "/lib", "/proc", "/sbin", "/sys", "/usr", "/var"]
 		LocationBox.__init__(self, session, text=text, currDir=dir, bookmarks=None, inhibitDirs=inhibitDirs, minFree=minFree)
 		self.skinName = "LocationBox"
-###############################################################################
 
-
-#------------------------------------------------------------------------------------------
 
 class PictureCenterFS7_Setup2(Screen, ConfigListScreen, HelpableScreen):
-	with open(SKIN_EXT + skin_ext_zusatz + "pcFS_setup.xml") as tmpskin:
+	with open(f"{SKINPATH}/{RESOLUTION}/pcFS_setup.xml") as tmpskin:
 		skin = tmpskin.read()
 
 	def __init__(self, session):
@@ -1224,9 +1208,7 @@ class PictureCenterFS7_Setup2(Screen, ConfigListScreen, HelpableScreen):
 			self["balken"].setText(_("Select with left / right") + " " + _("or change the entry"))
 
 	def keyCancel(self):
-		self.session.openWithCallback(
-						self.cancelConfirm,
-						MessageBox, _("Really close without saving settings?"), MessageBox.TYPE_YESNO)
+		self.session.openWithCallback(self.cancelConfirm, MessageBox, _("Really close without saving settings?"), MessageBox.TYPE_YESNO, default=False, timeout=3)
 
 	def cancelConfirm(self, result):
 		if result:
@@ -1242,12 +1224,7 @@ class PictureCenterFS7_Setup2(Screen, ConfigListScreen, HelpableScreen):
 		elif self.cur == self.auswahl:
 			self.session.openWithCallback(self.lCallback, ChoiceBox, list=[(_("main"), "0"), (_("Default for full screen and diashow"), "1"), (_("Infoline"), "2",), (_("Thumbnails"), "3")])
 		elif self.cur == excludeconf:
-			self.session.openWithCallback(
-						self.texteingabeFinished,
-						VirtualKeyBoard,
-						title=_("Do not show when in Name (separate with comma):"),
-						text=excludeconf.value
-				)
+			self.session.openWithCallback(self.texteingabeFinished, VirtualKeyBoard, title=_("Do not show when in Name (separate with comma):"), text=excludeconf.value)
 
 	def texteingabeFinished(self, ret):
 		global exclude
@@ -1271,11 +1248,9 @@ class PictureCenterFS7_Setup2(Screen, ConfigListScreen, HelpableScreen):
 			self.reloadList()
 
 	def save(self):
-
 		config.plugins.PictureCenterFS.hauptmenu.save()
 		self.configparser = ConfigParser()
 		self.configparser.read(DATAFILE)
-
 		if self.configparser.has_section("settings"):
 			self.configparser.remove_section("settings")
 		self.configparser.add_section("settings")
@@ -1318,14 +1293,14 @@ class PictureCenterFS7_Setup2(Screen, ConfigListScreen, HelpableScreen):
 		self.configparser.set("settings", "saver_random", str(saver_random.value))
 		self.configparser.set("settings", "saver_subdirs", str(saver_subdirs.value))
 		self.configparser.set("settings", "resolu", str(resolu.value))
-		with open(DATAFILE, "w") as fp:
-			self.configparser.write(fp)
+		with open(DATAFILE, "w") as file:
+			self.configparser.write(file)
 		self.close()
 #---------------------------------------------------------------------------
 
 
 class Show_Exif(Screen):
-	with open(SKIN_EXT + skin_ext_zusatz + "pcFS_exif.xml") as tmpskin:
+	with open(f"{SKINPATH}/{RESOLUTION}/pcFS_exif.xml") as tmpskin:
 		skin = tmpskin.read()
 
 	def __init__(self, session, exiflist, path):
@@ -1488,7 +1463,7 @@ class Pic_Thumb(Screen, HelpableScreen):
 				"rewind": (self.zehnback_page, str(sprungzahl.value) + _(" Pages back")),
 				"fastfor": (self.zehnvor_page, str(sprungzahl.value) + _(" Pages for")),
 		}, -1)
-		titel1 = " PictureCenterFS - " + _("Thumbs")
+		titel1 = f"PictureCenterFS - {_('Thumbs')}"
 		self.setTitle(titel1)
 		self["frame1"] = Label()
 		self["frame2"] = Label()
@@ -1585,7 +1560,7 @@ class Pic_Thumb(Screen, HelpableScreen):
 				if self.Thumbnaillist[x][0] == 0:
 					pic = self.Thumbnaillist[x][2]
 					if self.Thumbnaillist[x][2].lower().endswith(TYPE_MOV):
-						pic = SKIN_EXT + "/pictures/mov.jpg"
+						pic = SKINPATH + "/pictures/mov.jpg"
 
 					if self.picload.getThumbnail(pic) == 1:  # zu tun probier noch mal
 						self.ThumbTimer.start(300, True)
@@ -1749,20 +1724,20 @@ class full_text(MenuList):
 			self.l.setFont(0, gFont("Regular", listnew[2]))
 			for name in listnew1:
 				res = [name]
-				res.append(MultiContentEntryText(pos=(5, 0), size=name[4], font=0, text=name[0], flags=RT_HALIGN_LEFT | RT_VALIGN_CENTER, border_width=0, backcolor=col2))  #,color=col1 ,backcolor =col2
+				res.append(MultiContentEntryText(pos=(5, 0), size=name[4], font=0, text=name[0], flags=RT_HALIGN_LEFT | RT_VALIGN_CENTER, border_width=0, backcolor=col2))  # ,color=col1 ,backcolor =col2
 			nameliste.append(res)
 			self.l.setList(nameliste)
 
 
 class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
-	with open(SKIN_EXT + skin_ext_zusatz + "pcFS_full.xml") as tmpskin:
+	with open(f"{SKINPATH}/{RESOLUTION}/pcFS_full.xml") as tmpskin:
 		skin = tmpskin.read()
 
 	def __init__(self, session, path, index=0, liste=None, slideshow=0, ind_wahl=None):
 			#         self.dirname,0,fullbildsort.value,0,False,infoline.value,piclist,file_bez)
 		#alte wbrfs_Version
-		with open("/tmp/001.txt", "a") as f:
-			f.write(str(path) + "\n" + str(index) + "\n" + str(liste) + "\n" + str(slideshow) + "\n" + str(ind_wahl) + "\n")
+		with open("/tmp/001.txt", "a") as file:
+			file.write(str(path) + "\n" + str(index) + "\n" + str(liste) + "\n" + str(slideshow) + "\n" + str(ind_wahl) + "\n")
 		ind_wahl = None
 		index = 0
 		if liste == "random":
@@ -1774,9 +1749,9 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 		self.merkpath = path
 		self.picload = ePicLoad()
 		if osd_alpha_off.value:
-			self.alt_osd_alpha = str(open("/proc/stb/video/alpha", "r").read().strip())
+			self.alt_osd_alpha = str(open("/proc/stb/video/alpha").read().strip())
 			open("/proc/stb/video/alpha", "w").write(str(255))
-		print("[PictureCenterFS] start fullsize")
+		print(f"[{MODULE_NAME}] start fullsize")
 		self.session = session
 		#self.videoplay=videoplay
 		#vollbildsets=(fullbildsort.value,infoline.value,playvideo.value,std_read_sub.value)
@@ -1859,14 +1834,14 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 		if gMainDC and fromskin.value == 2 and resolu.value:
 			try:
 				if (self.size_w, self.size_h) != eval(resolu.value):
-					print("[PictureCenterFS] resize screen")
+					print(f"[{MODULE_NAME}] resize screen")
 					gMainDC.getInstance().setResolution(self.size_w, self.size_h)
 					getDesktop(0).resize(eSize(self.size_w, self.size_h))
 					(self.size_w, self.size_h) = (size_w, size_h)
 			except Exception as e:
 				self.size_w = getDesktop(0).size().width()
 				self.size_h = getDesktop(0).size().height()
-				print(f"[PictureCenterFS] resize failed: {e}")
+				print(f"[{MODULE_NAME}] resize failed: {e}")
 #                elif fromskin.value==1 and resolu.value:
 #                     #(size_w2, size_h2) = eval(resolu.value)
 #                     try:
@@ -1879,15 +1854,13 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 #                     except Exception:
 #			    self.size_w = None
 				#print "[PictureCenterFS] resize failed"
-		#with open("/tmp/pcfs1","a") as f:
-		#	f.write(str(self.size_w)+","+str(self.size_h)+"\n")
+		#with open("/tmp/pcfs1","a") as file:
+		#	file.write(str(self.size_w)+","+str(self.size_h)+"\n")
 		self.size_w = self.size_w - (framesize.value * 2)
 		self.size_h = self.size_h - (framesize.value * 2)
 		Screen.__init__(self, session)
 		self.skinName = "Pic_Full_View3"
-		self.__event_tracker = ServiceEventTracker(screen=self, eventmap={
-						iPlayableService.evEOF: self.next_from_mov,
-				})                                                   #alphatest=\"on\"    #ackgroundColor=\""+ self.bgcolor +"\" transparent=\"1\"
+		self.__event_tracker = ServiceEventTracker(screen=self, eventmap={iPlayableService.evEOF: self.next_from_mov,})  # alphatest=\"on\" #ackgroundColor=\""+ self.bgcolor +"\" transparent=\"1\"
 		HelpableScreen.__init__(self)
 		t1 = _("not activated")
 		if list_func.value:
@@ -2010,25 +1983,23 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 		size_h = self.instance.size().height()
 		self["playline"].hide()
 		self.zoom_out()
-		# pic_path = SKIN_EXT + "pictures/"
+		# pic_path = SKINPATH + "pictures/"
 		self.random_icon = pics2["pcfs_random"]
 		self.play_icon = pics2["pcfs_play"]
 		self.pause_icon = pics2["pcfs_pause"]
 		space = framesize.value
 		self.space = space
-		self.space_top = distance_infoline2.value[1] - 100   #top
-		space_left = distance_infoline2.value[0] - 100   #top
+		self.space_top = distance_infoline2.value[1] - 100  # top
+		space_left = distance_infoline2.value[0] - 100  # top
 		self.zeil_size = self["play_icon"].instance.size().height()
 		symb_size = (0, 0)
 		if fromskin.value == 2:
-			print("pcfs resize all")
+			print(f"[{MODULE_NAME}] pcfs resize all")
 			self.instance.resize(eSize(self.oldsize[0], self.oldsize[1]))
 			self.instance.move(ePoint(0, 0))
 			size_w2 = self.instance.size().width()
 			size_h = self.instance.size().height()
-
 			# bigger = 0
-
 			#symb_size=(0,0)
 			if self.symbols_on is True:
 				if info_size.value == 2:
@@ -2036,7 +2007,7 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 				elif info_size.value == 1:
 					symb_size = (35, 35)
 					# bigger = 10
-					self.random_icon = pics2["b_pcfs_random"]  #+b_pic
+					self.random_icon = pics2["b_pcfs_random"]  # +b_pic
 					self.play_icon = pics2["b_pcfs_play"]
 					self.pause_icon = pics2["b_pcfs_pause"]
 				elif info_size.value == 0:
@@ -2045,7 +2016,6 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 			self["play_icon"].resize(eSize(symb_size[0], symb_size[1]))
 			self["play_icon"].move(ePoint(space_left + 5, self.space_top + 4))
 			text_size = symb_size[1] - 5
-
 			if self.txt is not True:
 				self["pic"].resize(eSize(size_w2 - (space * 2), size_h - (space * 2)))
 				self["pic"].move(ePoint(space, space))
@@ -2054,41 +2024,31 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 				self["pic"].move(ePoint(space, space + symb_size[1]))
 
 			self.text_anfang = space_left + ((symb_size[0] + 10) * 1)
-
 			self.space = space
-#                self["pic"].move(ePoint(space,space))
+			# self["pic"].move(ePoint(space,space))
 			self["bgr2"].resize(eSize(size_w2 + 50, size_h + 50))
 			self["bgr2"].move(ePoint(0, 0))
-
 			if bgcolor.value == "transparent":
 				self["bgr2"].hide()
-
 			self["playline"].move(ePoint((size_w2 - 400) / 2, size_h - 50))
-
-#                self["play_icon"].move(ePoint(space_left+5, self.space_top+4))
+			# self["play_icon"].move(ePoint(space_left+5, self.space_top+4))
 			self["txt_zeile"].resize(eSize(size_w2, symb_size[1]))
 			self["txt_zeile"].instance.setFont(gFont("Regular", text_size))
-
 			self.text_anfang
 			self["txt_zeile"].move(ePoint(self.text_anfang, self.space_top + 4))
-
 			self["backline"].move(ePoint(space_left, self.space_top))
 			self["backline"].resize(eSize(size_w2 + 100, symb_size[0] + 10))
-
 			if textcolor.value != "skin":
 				self["txt_zeile"].instance.setForegroundColor(parseColor(textcolor.value))
 				self["txt_zeile"].instance.setShadowColor(parseColor("#000000"))
-
 		else:
-			# pic_path=SKIN_EXT+"pictures/"
+			# pic_path=SKINPATH+"pictures/"
 			self.random_icon = pics2["pcfs_random"]
 			self.play_icon = pics2["pcfs_play"]
 			self.pause_icon = pics2["pcfs_pause"]
-
 			self.text_anfang = 0
 			if textcolor.value != "skin":
 				self["txt_zeile"].instance.setForegroundColor(parseColor(textcolor.value))
-
 		if slideeffekt.value:
 			self["pic2"].resize(eSize(size_w2 - (space * 2), size_h - (space * 2)))
 			self.pic2_pos = (size_w2 - space, size_h - space, symb_size[1])
@@ -2117,7 +2077,6 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 		self["play_icon"].instance.setPixmapFromFile(self.icon)
 		if self.slideshow == 0:
 			self["play_icon"].hide()
-
 		if self.txt is True:
 			self.set_text(_("please wait, loading picture..."))
 		self.picload.setPara([self["pic"].instance.size().width(), self["pic"].instance.size().height(), 1, 1, False, 1, self.bgcolor])
@@ -2154,10 +2113,9 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 		if self.move == 0:
 			if pil_install != "ok":
 				self.rot_source = None
-				self.session.open(MessageBox, _("PIL is not installed"), MessageBox.TYPE_INFO, timeout=15)
+				self.session.open(MessageBox, _("PIL is not installed"), MessageBox.TYPE_INFO, timeout=3, close_on_any_key=True)
 			else:
 				if not self.slideTimer.isActive() and self.load is False and self.filelist and self.akt_index:
-
 					if self.or_index is None:
 						self.or_index = self.akt_index
 					if self.filelist[0][0] == '/tmp/changed.' + self.source_typ:
@@ -2165,7 +2123,6 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 							remove('/tmp/changed2.' + self.source_typ)
 						rename('/tmp/changed.' + self.source_typ, '/tmp/changed2.' + self.source_typ)
 						self.rot_source = '/tmp/changed2.' + self.source_typ
-
 						del self.filelist[0]
 						self.maxentry = self.maxentry - 1
 					else:
@@ -2176,9 +2133,9 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 						self.im = Image.open(self.rot_source)
 						if self.im and aktion:
 							if aktion == 1:
-								self.im.rotate(270).save('/tmp/changed.' + self.source_typ)  #, 'rechts'
+								self.im.rotate(270).save('/tmp/changed.' + self.source_typ)  # , 'rechts'
 							elif aktion == 2:
-								self.im.rotate(90).save('/tmp/changed.' + self.source_typ)  #, links'
+								self.im.rotate(90).save('/tmp/changed.' + self.source_typ)  # , links'
 							elif aktion == 3:
 								self.im.transpose(method=1).save('/tmp/changed.' + self.source_typ)
 							elif aktion == 4:
@@ -2257,7 +2214,7 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 					right = self.im.size[0]
 				if lower > self.im.size[1] or lower <= 0:
 					lower = self.im.size[1]
-				self.im.crop((int(left), int(upper), int(right), int(lower))).save('/tmp/changed.' + self.source_typ)          #, 'JPEG'
+				self.im.crop((int(left), int(upper), int(right), int(lower))).save('/tmp/changed.' + self.source_typ)  # , 'JPEG'
 				self.zoom_out()
 				self.rotat2()
 
@@ -2364,10 +2321,8 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 							self["backline"].show()
 				if bgcolor.value != "skin" and bgcolor.value != "transparent":
 					self["bgr2"].show()
-
 				self["pic"].show()
 				self["pic"].instance.setPixmap(self.currPic[2])
-
 				if slideeffekt.value:
 					self["pic2"].hide()
 				self.set_text(self.currPic[0])
@@ -2382,7 +2337,6 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 				self["backline"].hide()
 				self["pic2"].hide()
 				self["pic"].hide()
-
 				fileRef = eServiceReference("4097:0:0:0:0:0:0:0:0:0:" + self.currPic[0])
 				self.session.nav.playService(fileRef)
 				self["txt_zeile"].instance.setTransparent(1)
@@ -2415,14 +2369,13 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 			self.currPic0.append(pure_name)
 		else:
 			ptr = self.picload.getData()
-			print("4")
 			if ptr is not None:
 				text = ""
 				text = picInfo.split('\n', 1)
 				text_name = text[0].split('/')[-1]
 				typ = text_name.split(".")[-1]
 				pure_name = text_name.replace("." + typ, "")
-				typ2 = "pic" if ".%s" % typ.lower() in TYPE_PIC else "unknown"
+				typ2 = "pic" if f".{typ.lower()}" in TYPE_PIC else "unknown"
 				if self.filelist:
 					if '/tmp/changed2' in text[0]:
 						text_name = self.filelist[self.index][0].split('/')[-1] + " (" + _("auto rotated") + ")"
@@ -2439,7 +2392,6 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 				self.currPic0.append(typ)
 				self.currPic0.append(text_name)
 				self.currPic0.append(pure_name)
-			print("5")
 		self.pic_fertig = 1
 		self.maxTimer.stop()
 		if self.erststart == 0 or not self.currPic:
@@ -2499,14 +2451,12 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 							elif self.move_art == 2:   # oben rechts ok
 								self.movepoint1 = width + l_rand + self.space  # -self.space
 								self.movepoint2 = 0 - width - l_rand + self.space  # +self.space
-
-							elif self.move_art == 7:  #unten rechts
-								self.movepoint1 = width + l_rand  #self.space+
+							elif self.move_art == 7:  # unten rechts
+								self.movepoint1 = width + l_rand  # self.space+
 								self.movepoint2 = width + l_rand  # +self.space
-							elif self.move_art == 8:     #unten links ok
-								self.movepoint1 = 0 - width - l_rand + self.space     #+self.space
+							elif self.move_art == 8:  # unten links ok
+								self.movepoint1 = 0 - width - l_rand + self.space  # +self.space
 								self.movepoint2 = width + l_rand + self.space  # +self.pic2_pos[2]
-
 							elif self.move_art == 3:  # von oben  ok
 								self.movepoint2 = 0 - height  # +self.space
 							elif self.move_art == 4:  # von rechts ok
@@ -2570,7 +2520,6 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 					soll = 0
 					self.movepoint1 = self.movepoint1 + plus
 					self.movepoint2 = self.movepoint2 - plus
-
 			if soll == 0:
 				self["pic2"].move(ePoint(self.movepoint1, self.movepoint2))
 				self.moveTimer.start(50)
@@ -2590,9 +2539,7 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 			self.pic_fertig = 0
 			indx = self.index
 			self.maxTimer.start(self.maxtime * 1000)
-			print("#####self.filelist: %s" % str(self.filelist))
 			pic = self.filelist[indx][0] if self.filelist else ""
-			print("1")
 			dreh = ""
 			if self.exif:
 				self.alt_exif = self.exif
@@ -2618,12 +2565,10 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 							im.rotate(180).save('/tmp/changed2.' + self.source_typ)
 						del im
 						pic = '/tmp/changed2.' + self.source_typ
-				print("2")
 				self.picload.startDecode(pic)
 			elif pic.lower().endswith(TYPE_MOV):
 				self.finish_decode(pic)
 			#self.selectionChanged()
-			print("3")
 
 	def next(self):
 		self.index = self.akt_index + 1
@@ -2689,7 +2634,6 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 			#self["bgr"].show()
 			self.session.nav.stopService()
 			self.session.nav.playService(self.altservice)
-
 		if self.slideTimer.isActive():
 			self.slideTimer.stop()
 		if self.moveTimer.isActive():
@@ -2714,7 +2658,6 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 					self.PlayPause()
 				if self.rotate_index:
 					self.clear_rotate(1)
-
 				else:
 					if self.move == 1:
 						self.session.nav.stopService()
@@ -2819,7 +2762,7 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 
 	def slidetime_msg(self):
 		sl_text = _("Slide Time has been changed to") + " " + str(self.slidetime) + " " + _("seconds")
-		self.session.open(MessageBox, sl_text, MessageBox.TYPE_INFO, timeout=3)
+		self.session.open(MessageBox, sl_text, MessageBox.TYPE_INFO, timeout=3, close_on_any_key=True)
 
 	def toggle_art(self):
 		if self.art == "random" and self.filelist:
@@ -2841,7 +2784,6 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 	def text(self):
 		size_w = self.instance.size().width()
 		size_h = self.instance.size().height()
-
 		if self.txt is False:
 			self.txt = True
 			zeil = self.zeil_size
@@ -2868,19 +2810,16 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 			self.clear_rotate(3)
 
 ###  movie ############################
-########################
 	def playpauseService(self):
 		if self.move == 1:
 			service = self.session.nav.getCurrentService()
 			if service:
-
 				servicePause = service.pause()
 				if servicePause is not None:
 					if self.v_pause == 0:
 						self.v_pause = 1
 						servicePause.pause()
 						self["play_icon"].instance.setPixmapFromFile(self.pause_icon)
-
 					else:
 						self.v_pause = 0
 						self["play_icon"].instance.setPixmapFromFile(self.icon)
@@ -2895,8 +2834,6 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 	def unlockShow(self):
 		pass
 
-#######################################
-#######################################
 	def eExit(self, ref=None):
 		#gMainDC.getInstance().setResolution(self.oldsize[0],self.oldsize[1])
 		#getDesktop(0).resize(eSize(self.oldsize[0],self.oldsize[1]))
@@ -2919,8 +2856,8 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 		if ind < 0 or self.art == "random":
 			self.index = 0
 		self.configparser2.set("last_path", "index", str(ind))
-		with open(DATAFILE, "w") as fp:
-			self.configparser2.write(fp)
+		with open(DATAFILE, "w") as file:
+			self.configparser2.write(file)
 		self.moveTimer.stop()
 		self.session.nav.playService(self.altservice)
 		self.instance.resize(eSize(getDesktop(0).size().width(), getDesktop(0).size().height()))
@@ -2940,9 +2877,8 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 				self.close(None)
 
 
-class AutoMount():
+class AutoMount:
 	"""Manages Mounts declared in a XML-Document."""
-
 	def __init__(self):
 		self.automounts = {}
 		self.restartConsole = Console()
@@ -2956,7 +2892,6 @@ class AutoMount():
 			self.timer_conn = self.timer.timeout.connect(self.mountTimeout)
 		else:
 			self.timer.callback.append(self.mountTimeout)
-
 		self.getAutoMountPoints()
 
 	def regExpMatch(self, pattern, string):
@@ -3002,10 +2937,10 @@ class AutoMount():
 					data['sharedir'] = getValue(mount.findall("sharedir"), "/exports/")
 					data['sharename'] = getValue(mount.findall("sharename"), "MEDIA")
 					data['options'] = getValue(mount.findall("options"), "rw,nolock,tcp")
-					print("NFSMOUNT", data)
+					print(f"[{MODULE_NAME}:NFSMOUNT]", data)
 					self.automounts[data['sharename']] = data
 				except Exception as e:
-					print("[MountManager] Error reading Mounts:", e)
+					print(f"[{MODULE_NAME}:MountManager] Error reading Mounts:", e)
 		# Read out CIFS Mounts
 		for nfs in tree.findall("cifs"):
 			for mount in nfs.findall("mount"):
@@ -3023,21 +2958,21 @@ class AutoMount():
 					data['options'] = getValue(mount.findall("options"), "rw,nolock")
 					data['username'] = getValue(mount.findall("username"), "guest")
 					data['password'] = getValue(mount.findall("password"), "")
-					print("CIFSMOUNT", data)
+					print(f"[{MODULE_NAME}:CIFSMOUNT]", data)
 					self.automounts[data['sharename']] = data
 				except Exception as e:
-					print("[MountManager] Error reading Mounts:", e)
+					print(f"[{MODULE_NAME}:MountManager] Error reading Mounts:", e)
 		try:
-			with open('/etc/auto.network', 'r') as fp:
-				automounts = fp.readlines()
+			with open('/etc/auto.network') as file:
+				automounts = file.readlines()
 		except Exception:
-			print("[AutoMount.py] /etc/auto.network - opening failed")
+			print(f"[{MODULE_NAME}:Automount] /etc/auto.network - opening failed")
 		ipRegexp = r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'
 		cifsIpLinePattern = compile('://' + ipRegexp + '/')
 		nfsIpLinePattern = compile(ipRegexp + ':/')
 		ipPattern = compile(ipRegexp)
 		for line in automounts:
-			print("[AutoMount.py] Line:", line)
+			print(f"[{MODULE_NAME}:Automount] Line:", line)
 			split = line.strip().split('\t', 2)
 			if split[0] == '*':
 				continue
@@ -3096,9 +3031,9 @@ class AutoMount():
 						data['sharedir'] = tmpsharedir
 				#self.automounts[currshare] = data
 				self.automounts[data['sharename']] = data
-		print("[AutoMount.py] -getAutoMountPoints:self.automounts -->", self.automounts)
+		print(f"[{MODULE_NAME}:Automount] -getAutoMountPoints:self.automounts -->", self.automounts)
 		if len(self.automounts) == 0:
-			print("[AutoMount.py] self.automounts without mounts", self.automounts)
+			print(f"[{MODULE_NAME}:Automount] self.automounts without mounts", self.automounts)
 			if callback is not None:
 				callback(True)
 		else:
@@ -3106,18 +3041,18 @@ class AutoMount():
 				self.CheckMountPoint(sharedata, callback)
 
 	def CheckMountPoint(self, data, callback):
-		print("[AutoMount.py] CheckMountPoint")
-		print("[AutoMount.py] activeMounts:--->", self.activeMountsCounter)
+		print(f"[{MODULE_NAME}:AutoMount] CheckMountPoint")
+		print(f"[{MODULE_NAME}:AutoMount] activeMounts:--->", self.activeMountsCounter)
 		if not self.MountConsole:
 			self.MountConsole = Console()
 
 		self.command = None
 		if self.activeMountsCounter == 0:
-			print("self.automounts without active mounts", self.automounts)
+			print(f"[{MODULE_NAME}] self.automounts without active mounts", self.automounts)
 			if data['active'] == 'False' or data['active'] is False:
 				path = '/media/net/' + data['sharename']
 				umountcmd = 'umount -fl ' + path
-				print("[AutoMount.py] UMOUNT-CMD--->", umountcmd)
+				print(f"[{MODULE_NAME}:AutoMount] UMOUNT-CMD--->", umountcmd)
 				self.MountConsole.ePopen(umountcmd, self.CheckMountPointFinished, [data, callback])
 		else:
 			if data['active'] == 'False' or data['active'] is False:
@@ -3139,20 +3074,20 @@ class AutoMount():
 						tmpcmd = 'mount -t cifs -o ' + data['options'] + ',iocharset=utf8,rsize=8192,wsize=8192,username=' + tmpusername + ',password=' + data['password'] + ' //' + data['ip'] + '/' + tmpsharedir + ' ' + path
 						self.command = tmpcmd
 			if self.command is not None:
-				print("[AutoMount.py] U/MOUNTCMD--->", self.command)
+				print(f"[{MODULE_NAME}:Automount] U/MOUNTCMD--->", self.command)
 				self.MountConsole.ePopen(self.command, self.CheckMountPointFinished, [data, callback])
 			else:
 				self.CheckMountPointFinished(None, None, [data, callback])
 
 	def CheckMountPointFinished(self, result, retval, extra_args):
-		print("[AutoMount.py] CheckMountPointFinished")
-		print("[AutoMount.py] result", result)
-		print("[AutoMount.py] retval", retval)
+		print(f"[{MODULE_NAME}:Automount] CheckMountPointFinished")
+		print(f"[{MODULE_NAME}:Automount] result", result)
+		print(f"[{MODULE_NAME}:Automount] retval", retval)
 		(data, callback) = extra_args
 		if self.MountConsole:
-			print("LEN", len(self.MountConsole.appContainers))
+			print(f"[{MODULE_NAME}] LEN", len(self.MountConsole.appContainers))
 		path = '/media/net/' + data['sharename']
-		print("PATH im CheckMountPointFinished", path)
+		print(f"[{MODULE_NAME}] PATH im CheckMountPointFinished", path)
 		if exists(path):
 			if ismount(path):
 				if self.automounts and data['sharename'] in self.automounts:
@@ -3166,7 +3101,6 @@ class AutoMount():
 					if not ismount(path):
 						removeDir(path)
 						harddiskmanager.removeMountedPartition(path)
-
 		if self.MountConsole:
 			if len(self.MountConsole.appContainers) == 0:
 				if callback is not None:
@@ -3175,7 +3109,7 @@ class AutoMount():
 
 	def makeHDDlink(self, path):
 		hdd_dir = '/media/hdd'
-		print("[AutoMount.py] symlink %s %s" % (path, hdd_dir))
+		print(f"[{MODULE_NAME}:Automount] symlink %s %s" % (path, hdd_dir))
 		if islink(hdd_dir):
 			if readlink(hdd_dir) != path:
 				remove(hdd_dir)
@@ -3186,7 +3120,7 @@ class AutoMount():
 		try:
 			symlink(path, hdd_dir)
 		except OSError:
-			print("[AutoMount.py] add symlink fails!")
+			print(f"[{MODULE_NAME}:Automount] add symlink fails!")
 		if exists(hdd_dir + '/movie') is False:
 			createDir(hdd_dir + '/movie')
 
@@ -3202,7 +3136,7 @@ class AutoMount():
 		self.timer.stop()
 		if self.MountConsole:
 			if len(self.MountConsole.appContainers) == 0:
-				print("self.automounts after mounting", self.automounts)
+				print(f"[{MODULE_NAME}] self.automounts after mounting", self.automounts)
 				if self.callback is not None:
 					self.callback(True)
 
@@ -3216,7 +3150,7 @@ class AutoMount():
 		return None
 
 	def setMountsAttribute(self, mountpoint, attribute, value):
-		print("setting for mountpoint", mountpoint, "attribute", attribute, " to value", value)
+		print(f"[{MODULE_NAME}]setting for mountpoint", mountpoint, "attribute", attribute, " to value", value)
 		if mountpoint in self.automounts:
 			self.automounts[mountpoint][attribute] = value
 
@@ -3228,7 +3162,7 @@ class AutoMount():
 			self.MountConsole = None
 
 	def removeMount(self, mountpoint, callback=None):
-		print("[AutoMount.py] removing mount: ", mountpoint)
+		print(f"[{MODULE_NAME}:Automount] removing mount: ", mountpoint)
 		self.newautomounts = {}
 		for sharename, sharedata in self.automounts.items():
 			if sharename is not mountpoint.strip():
@@ -3239,13 +3173,13 @@ class AutoMount():
 			self.removeConsole = Console()
 		path = '/media/net/' + mountpoint
 		umountcmd = 'umount -fl ' + path
-		print("[AutoMount.py] UMOUNT-CMD--->", umountcmd)
+		print(f"[{MODULE_NAME}:Automount] UMOUNT-CMD--->", umountcmd)
 		self.removeConsole.ePopen(umountcmd, self.removeMountPointFinished, [path, callback])
 
 	def removeMountPointFinished(self, result, retval, extra_args):
-		print("[AutoMount.py] removeMountPointFinished")
-		print("[AutoMount.py] result", result)
-		print("[AutoMount.py] retval", retval)
+		print(f"[{MODULE_NAME}:Automount] removeMountPointFinished")
+		print(f"[{MODULE_NAME}:Automount] result", result)
+		print(f"[{MODULE_NAME}:Automount] retval", retval)
 		(path, callback) = extra_args
 		if exists(path):
 			if not ismount(path):
@@ -3326,12 +3260,12 @@ def read_marks(file0=None, add_file=None, del_file=None):
 		if not exists("/tmp/pcfs_mark"):
 			open("/tmp/pcfs_mark", "w").close()
 		if del_file:
-			with open(file0, "r") as f:
-				lines = f.readlines()
-			with open(file0, 'w') as f:
+			with open(file0) as file:
+				lines = file.readlines()
+			with open(file0, 'w') as file:
 				for x in lines:
 					if del_file != x.strip():
-						f.write(x)
+						file.write(x)
 						filelist.append((x.strip(), basename(x.strip()), "all", True, "file", 1, 0))
 		else:
 			if isfile(file0):
@@ -3375,11 +3309,7 @@ class pcFSLCDScreen(Screen):
 
 
 def main(session, **kwargs):
-#	try:
 	session.open(PictureCenterFS7)
-#	except Exception:
-#		from traceback import print_exc
-#		print_exc()
 
 
 def menu(menuid, **kwargs):

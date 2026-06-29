@@ -1,9 +1,8 @@
 <screen name="pcFSLCDScreen" position="0,0" size="400,200" id="1">
-		<widget name="title" position="4,0" size="400,35" font="Regular;35"/>  
+		<widget name="title" position="4,0" size="400,35" font="Regular;35"/>
 		<widget name="plays" position="30,50" size="30,60" font="Regular;40"/>
                 <widget name="index" position="100,50" size="120,60" halign="right" font="Regular;40"/>
                 <eLabel text="/" position="220,50" size="30,60" halign="center" font="Regular;40"/>
-                <widget name="anzahl" position="250,50" size="150,60" halign="left" font="Regular;40"/> 
+                <widget name="anzahl" position="250,50" size="150,60" halign="left" font="Regular;40"/>
 		<widget name="name1" position="4,110" size="400,90" font="Regular;40"/>
 	        </screen>
-                
