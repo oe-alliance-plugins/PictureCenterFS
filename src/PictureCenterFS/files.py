@@ -24,7 +24,7 @@ try:
 except ImportError:
 	DPKG = False
 PLUGINNAME = "PictureCenterFS"
-RESOLUTION = "FHD" if getDesktop(0).size().width() > 1850 else "HD"
+RESOLUTION = "fHD" if getDesktop(0).size().width() > 1850 else "HD"
 PLUGINPATH = resolveFilename(SCOPE_PLUGINS, "Extensions/PictureCenterFS")  # e.g. /usr/lib/enigma2/python/Plugins/Extensions/PictureCenterFS
 
 
