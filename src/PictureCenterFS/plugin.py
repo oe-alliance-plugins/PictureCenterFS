@@ -67,7 +67,7 @@ TYPE_MOV = (".mpg", ".mov", ".mp4", ".mkv", ".avi", ".mpeg", ".mts", ".m2ts", ".
 size_w = getDesktop(0).size().width()
 size_h = getDesktop(0).size().height()
 if size_w > 1850:
-	RESOLUTION = "FHD"
+	RESOLUTION = "fHD"
 	font1 = 30
 	font2 = 18
 	zeil_high = 40
