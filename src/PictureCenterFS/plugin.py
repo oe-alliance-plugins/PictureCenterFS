@@ -171,32 +171,34 @@ if not exists(DATAFILE):
 configparser1 = ConfigParser()
 configparser1.read(DATAFILE)
 if configparser1.has_section("settings"):
-	for section, key in configparser1.items("settings"):
-		strip_key = key.strip()
-		strip_section = section.strip()
-		if strip_section == "True":
-			locals()[key].value = True
-		elif strip_section == "False" or strip_section == "None":
-			locals()[key].value = False
-		elif strip_key == "filesort":
-			if ("date" in section and pil_install != "ok") or "random" in section or "all" in section:
-				filesort.value = "name"
+	for key, value in configparser1.items("settings"):
+		try:
+			strip_key = key.strip()
+			strip_value = value.strip()
+			if strip_value == "True":
+				locals()[key].value = True
+			elif strip_value == "False" or strip_value == "None":
+				locals()[key].value = False
+			elif strip_key == "filesort":
+				if ("date" in value and pil_install != "ok") or "random" in value or "all" in value:
+					filesort.value = "name"
+				else:
+					filesort.value = strip_value.lower()
+			elif strip_key == "fullbildsort":
+				if ("date" in value and pil_install != "ok"):
+					fullbildsort.value = "name"
+				else:
+					fullbildsort.value = strip_value.lower()
+			elif strip_key == "distance_infoline2":
+				i1 = value.replace("[", "").replace("]", "").split(",")
+				i_space = [int(i1[0]), int(i1[1])]
+				distance_infoline2.value = i_space
+			elif strip_value.isdigit():
+				locals()[key].value = int(strip_value)
 			else:
-				filesort.value = strip_section.lower()
-		elif strip_key == "fullbildsort":
-			if ("date" in section and pil_install != "ok"):
-				fullbildsort.value = "name"
-			else:
-				fullbildsort.value = strip_section.lower()
-		elif strip_key == "distance_infoline2":
-			i1 = section.replace("[", "").replace("]", "").split(",")
-			i_space = [int(i1[0]), int(i1[1])]
-			distance_infoline2.value = i_space
-		else:
-			strip_section = strip_section
-			if strip_section.isdigit():
-				set_section = int(strip_section) if strip_section.isdigit() else strip_section
-				locals()[key].value = set_section
+				locals()[key].value = strip_value
+		except KeyError:
+			pass
 vollbildsets = [fullbildsort.value, infoline.value, playvideo.value, std_read_sub.value, filesort.value]
 exclude = ()
 if len(excludeconf.value.strip()):
@@ -319,16 +321,19 @@ class PictureCenterFS7(Screen, HelpableScreen):
 					self.infoline = infoline.value
 					self.videoplay = playvideo.value
 					index = 0
-					for section, key in self.configparser2.items(section):
-						strip_section = section.strip()
-						if strip_section == "True":
-							locals()[key] = True
-						elif strip_section == "False":
-							locals()[key] = False
+					for key, value in self.configparser2.items(section):
+						strip_value = value.strip()
+						if strip_value == "True":
+							setattr(self, key, True)
+						elif strip_value == "False":
+							setattr(self, key, False)
 						elif key == "index":
-							index = int(strip_section)
+							index = int(strip_value)
 						else:
-							locals()[key] = strip_section
+							try:
+								setattr(self, key, int(strip_value))
+							except ValueError:
+								setattr(self, key, strip_value)
 					if pathExists(self.path):
 						online = 1
 						pinpng = LoadPixmap(pics2["pin"])
@@ -613,6 +618,10 @@ class PictureCenterFS7(Screen, HelpableScreen):
 	def nopic(self, call):
 		self.Full_View_back()
 		if call:
+			try:
+				int(call)
+			except (TypeError, ValueError):
+				return
 			self.session.open(MessageBox, _("No Picture found on in this Dir"), MessageBox.TYPE_INFO, timeout=3, close_on_any_key=True)
 
 	def path_wahl(self):
@@ -669,25 +678,33 @@ class PictureCenterFS7(Screen, HelpableScreen):
 		configparser1 = ConfigParser()
 		configparser1.read(DATAFILE)
 		if configparser1.has_section("settings"):
-			for section, key in configparser1.items("settings"):
-				if configparser1.has_option(section, key) and configparser1.get(section, key):
-					if strip_section == "True":
-						locals()[key].value = True  # True
-					elif strip_section == "False":
-						locals()[key].value = False
-					elif strip_key == "filesort":
-						if "date" in section and pil_install != "ok":
-							filesort.value = "name"
-						else:
-							filesort.value = strip_section
-					elif strip_key == "distance_infoline2":
-						i1 = section.replace("[", "").replace("]", "").split(",")
-						i_space = [int(i1[0]), int(i1[1])]
-						distance_infoline2.value = i_space
+			for key, value in configparser1.items("settings"):
+				strip_key = key.strip()
+				strip_value = value.strip()
+				if strip_key == "distance_infoline2":
+					i1 = strip_value.replace("[", "").replace("]", "").split(",")
+					i_space = [int(i1[0]), int(i1[1])]
+					distance_infoline2.value = i_space
+				elif strip_key == "filesort":
+					if "date" in strip_value and pil_install != "ok":
+						filesort.value = "name"
 					else:
-						nam1 = strip_section
-						set_nam1 = int(nam1) if nam1.isdigit() else nam1
-						locals()[key].value = set_nam1
+						filesort.value = strip_value
+				else:
+					try:
+						old = locals()[key].value
+					except KeyError:
+						old = None
+					if old:
+						if strip_value == "True":
+							locals()[key].value = True
+						elif strip_value == "False":
+							locals()[key].value = False
+						else:
+							try:
+								locals()[key].value = int(strip_value)
+							except ValueError:
+								locals()[key].value = strip_value
 			vollbildsets = [fullbildsort.value, infoline.value, playvideo.value, std_read_sub.value, filesort.value]
 			exclude = ()
 			if len(excludeconf.value.strip()):
@@ -744,8 +761,6 @@ class PictureCenterFS7(Screen, HelpableScreen):
 			self.st_aktiv = False
 			self["pc_list"].setList(self.nlist)
 			selnr = selection + o_anz
-			with open("/tmp/004.txt", "a") as file:
-				file.write(f"{selnr}, {selection}, {len(self.nlist)}\n")
 			if len(self.nlist) <= selnr or selection == 0:
 				selnr = 0
 			if selnr > 0:
@@ -869,40 +884,46 @@ class file_list:
 		while len(directories) > 0:
 			directory = directories.pop()
 			if isdir(directory):
-				for name in listdir(directory):
-					if name:
-						excludes = None
-						if len(exclude):
-							for x in exclude:
-								if x.lower() in name.lower():
-									excludes = 1
-									break
-						adding = 1
-						fullpath = join(directory, name)
-						if not excludes and not name.startswith(".") and not fullpath.startswith(".") and not name.startswith("@"):
-							if isfile(fullpath) and getsize(fullpath) > 0:
-								if name.lower().endswith(typ_list) and fullpath != '/tmp/bgr.png':  # ,"gif"
-									xf_date = (0, "")
-									xf = None
-									if "date" in sortart:
-										#xf=self.get_exif(fullpath)
-										if name.lower().endswith(TYPE_PIC):
-											xf = self.get_exif(fullpath)
-										if name.lower().endswith(TYPE_MOV) or not xf:
-											x1 = getmtime(fullpath)
-											xf = (x1, strftime("%d.%m.%Y", gmtime(x1)))
-										#xf= strftime('%Y:%m:%d %H:%M:%S',self.get_exif(fullpath))
-										if xf:
-											xf_date = xf  # mktime(xf)
-									self.Dateiliste2.append((fullpath, name, sortart, True, "file", 1, xf_date[0], xf_date[1]))
-							elif isdir(fullpath):
-								if cache.value is False and fullpath.endswith(".Thumbnails"):
-									rmtree(fullpath)
-									adding = 0
-								if subdirs is True and adding == 1:
-									directories.append(fullpath)
-								elif str(subdirs) == "True" and adding == 1:
-									self.Dateiliste.append((f"{fullpath}/", name, sortart, True, "dir", True, 1, 0))
+				try:
+					for name in listdir(directory):
+						if name:
+							excludes = None
+							if len(exclude):
+								for x in exclude:
+									if x.lower() in name.lower():
+										excludes = 1
+										break
+							adding = 1
+							fullpath = join(directory, name)
+							if not excludes and not name.startswith(".") and not fullpath.startswith(".") and not name.startswith("@"):
+								if isfile(fullpath) and getsize(fullpath) > 0:
+									if name.lower().endswith(typ_list) and fullpath != '/tmp/bgr.png':  # ,"gif"
+										xf_date = (0, "")
+										xf = None
+										if "date" in sortart:
+											#xf=self.get_exif(fullpath)
+											if name.lower().endswith(TYPE_PIC):
+												xf = self.get_exif(fullpath)
+											if name.lower().endswith(TYPE_MOV) or not xf:
+												x1 = getmtime(fullpath)
+												xf = (x1, strftime("%d.%m.%Y", gmtime(x1)))
+											#xf= strftime('%Y:%m:%d %H:%M:%S',self.get_exif(fullpath))
+											if xf:
+												xf_date = xf  # mktime(xf)
+										self.Dateiliste2.append((fullpath, name, sortart, True, "file", 1, xf_date[0], xf_date[1]))
+								elif isdir(fullpath):
+									if cache.value is False and fullpath.endswith(".Thumbnails"):
+										try:
+											rmtree(fullpath)
+										except OSError:
+											pass
+										adding = 0
+									if subdirs is True and adding == 1:
+										directories.append(fullpath)
+									elif str(subdirs) == "True" and adding == 1:
+										self.Dateiliste.append((f"{fullpath}/", name, sortart, True, "dir", True, 1, 0))
+				except OSError:
+					pass
 		if "date" in sortart:
 			self.Dateiliste2.sort(key=lambda x: x[6])
 		elif sortart == "name" or sortart == "revers":
@@ -916,17 +937,20 @@ class file_list:
 	def get_exif(self, fn=None):
 		ret = None
 		if fn and exists(fn):
-			i = Image.open(fn)
-			info = i.getexif()
-			if info:
-				for tag, value in info.items():
-					decoded = TAGS.get(tag, tag)
-					if decoded == "DateTimeOriginal":
-						xf = strptime(value, '%Y:%m:%d %H:%M:%S')
-						if xf:
-							xf3 = strftime("%d.%m.%Y", xf)
-							ret = (mktime(xf), xf3)
-							return ret
+			try:
+				i = Image.open(fn)
+				info = i.getexif()
+				if info:
+					for tag, value in info.items():
+						decoded = TAGS.get(tag, tag)
+						if decoded == "DateTimeOriginal":
+							xf = strptime(value, '%Y:%m:%d %H:%M:%S')
+							if xf:
+								xf3 = strftime("%d.%m.%Y", xf)
+								ret = (mktime(xf), xf3)
+								return ret
+			except Exception:
+				pass
 ######################################################################
 
 
@@ -1735,16 +1759,11 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 
 	def __init__(self, session, path, index=0, liste=None, slideshow=0, ind_wahl=None):
 			#         self.dirname,0,fullbildsort.value,0,False,infoline.value,piclist,file_bez)
-		#alte wbrfs_Version
-		with open("/tmp/001.txt", "a") as file:
-			file.write(str(path) + "\n" + str(index) + "\n" + str(liste) + "\n" + str(slideshow) + "\n" + str(ind_wahl) + "\n")
 		ind_wahl = None
-		index = 0
 		if liste == "random":
 			liste = None
 			ind_wahl = None
 			slideshow = "saver"
-		#alte wbrfs_Version ende
 		self.alt_osd_alpha = None
 		self.merkpath = path
 		self.picload = ePicLoad()
@@ -2847,11 +2866,11 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 		if self.configparser2.has_section("last_path"):
 			self.configparser2.remove_section("last_path")
 		self.configparser2.add_section("last_path")
-		self.configparser2.set("last_path", "path", self.merkpath)
+		self.configparser2.set("last_path", "path", str(self.merkpath))
 		self.configparser2.set("last_path", "read_sub", str(vollbildsets[3]))
-		self.configparser2.set("last_path", "sortierung", vollbildsets[0].lower())
-		self.configparser2.set("last_path", "infoline", vollbildsets[1] or "")
-		self.configparser2.set("last_path", "videoplay", vollbildsets[2] or "")
+		self.configparser2.set("last_path", "sortierung", str(vollbildsets[0]).lower())
+		self.configparser2.set("last_path", "infoline", str(vollbildsets[1]))
+		self.configparser2.set("last_path", "videoplay", str(vollbildsets[2]))
 		ind = self.index - 1
 		if ind < 0 or self.art == "random":
 			self.index = 0

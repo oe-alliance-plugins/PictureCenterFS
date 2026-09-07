@@ -125,7 +125,7 @@ class PictureCenterFS7_Filemenu(Screen):
 	def save_rotat2(self, args=None):
 		if args:
 			try:
-				copyfile(self.file1, self.file1)  # FIXME
+				copyfile(self.file2, self.file1)
 				self.session.openWithCallback(self.exit, MessageBox, (f"{self.file1}\n{_('file successfully saved')}"), MessageBox.TYPE_INFO)
 			except OSError as err:
 				txt = f"OS-Error:\n{err}"
@@ -148,8 +148,6 @@ class PictureCenterFS7_Filemenu(Screen):
 
 	def callCopy(self, path):
 		if path is not None:
-			with open("/tmp/files.txt", "a") as f:
-				f.write(f"{self.file1}\n{self.file2}\n")
 			self.copy_source = self.file2
 			self.copy_target = f"{path}{self.filename}"
 			if exists(f"{path}{self.filename}"):
