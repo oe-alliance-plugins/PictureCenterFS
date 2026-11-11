@@ -10,23 +10,24 @@
 # PYTHON IMPORTS
 from configparser import ConfigParser
 from fnmatch import fnmatch
-from os import makedirs, listdir, remove, rename, symlink, unlink, readlink
-from os.path import exists, basename, dirname, isdir, isfile, join, getsize, getmtime, splitext, split, ismount, islink
+from os import listdir, makedirs, readlink, remove, rename, symlink, unlink
+from os.path import basename, dirname, exists, getmtime, getsize, isdir, isfile, islink, ismount, join, split, splitext
+from random import randint, shuffle
+from re import compile
 from shutil import rmtree
+from sys import getrecursionlimit, setrecursionlimit
+from threading import Lock, Thread
+from time import gmtime, mktime, strftime, strptime
+from xml.etree.ElementTree import parse as cet_parse
 from PIL import Image, ImageDraw
 from PIL.ExifTags import TAGS
-from random import shuffle, randint
-from re import compile
-from skin import parseColor
-from sys import getrecursionlimit, setrecursionlimit
-from time import strftime, strptime, gmtime, mktime
-from threading import Thread, Lock
-from xml.etree.ElementTree import parse as cet_parse
 
 # ENIGMA IMPORTS
-from enigma import eListboxPythonMultiContent, gFont, RT_HALIGN_LEFT, RT_VALIGN_CENTER, ePoint, eSize, ePicLoad, eTimer, getDesktop, iPlayableService, eServiceReference, gMainDC
+from enigma import RT_HALIGN_LEFT, RT_VALIGN_CENTER, eListboxPythonMultiContent, ePicLoad, ePoint, eServiceReference, eSize, eTimer, gFont, gMainDC, getDesktop, iPlayableService
+
+from skin import parseColor
 from Components.ActionMap import ActionMap, HelpableActionMap
-from Components.config import config, ConfigDirectory, ConfigSubsection, ConfigInteger, ConfigSelection, ConfigText, ConfigEnableDisable, getConfigListEntry, NoSave, ConfigSequence, ConfigNothing
+from Components.config import ConfigDirectory, ConfigEnableDisable, ConfigInteger, ConfigNothing, ConfigSelection, ConfigSequence, ConfigSubsection, ConfigText, NoSave, config, getConfigListEntry
 from Components.ConfigList import ConfigListScreen
 from Components.Console import Console
 from Components.Harddisk import harddiskmanager
@@ -34,10 +35,10 @@ from Components.Label import Label
 from Components.MenuList import MenuList
 from Components.MultiContent import MultiContentEntryText
 from Components.Pixmap import Pixmap
-from Components.Sources.List import List
-from Components.Sources.StaticText import StaticText
 from Components.ServiceEventTracker import ServiceEventTracker
 from Components.ServicePosition import ServicePositionGauge
+from Components.Sources.List import List
+from Components.Sources.StaticText import StaticText
 from Plugins.Plugin import PluginDescriptor
 from Screens.ChoiceBox import ChoiceBox
 from Screens.HelpMenu import HelpableScreen
@@ -46,11 +47,11 @@ from Screens.LocationBox import LocationBox
 from Screens.MessageBox import MessageBox
 from Screens.Screen import Screen
 from Screens.VirtualKeyBoard import VirtualKeyBoard
-from Tools.Directories import SCOPE_SYSETC, SCOPE_PLUGINS, SCOPE_CURRENT_SKIN, resolveFilename, pathExists, fileExists, removeDir, createDir
+from Tools.Directories import SCOPE_CURRENT_SKIN, SCOPE_PLUGINS, SCOPE_SYSETC, createDir, fileExists, pathExists, removeDir, resolveFilename
 from Tools.LoadPixmap import LoadPixmap
 
 # PLUGIN IMPORTS
-from . import __version__, _  # for localized messages
+from . import _, __version__  # for localized messages
 from .files import PictureCenterFS7_Filemenu, backup, save_mark
 
 MODULE_NAME = __name__.split(".")[-2]
@@ -1776,6 +1777,7 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 		#vollbildsets=(fullbildsort.value,infoline.value,playvideo.value,std_read_sub.value)
 		self.slideshow = slideshow
 		if str(index) == "saver":
+			index = 0  # The screensaver marker is not a picture index.
 			self.art = saver_random.value.lower()
 			self.videoplay = False
 			self.txt = False
