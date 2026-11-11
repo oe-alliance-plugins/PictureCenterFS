@@ -2389,14 +2389,13 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 		else:
 			ptr = self.picload.getData()
 			if ptr is not None:
-				text = ""
-				text = picInfo.split('\n', 1)
-				text_name = text[0].split('/')[-1]
+				text = picInfo.split('\n', 1)[0]
+				text_name = text.split('/')[-1]
 				typ = text_name.split(".")[-1]
 				pure_name = text_name.replace("." + typ, "")
 				typ2 = "pic" if f".{typ.lower()}" in TYPE_PIC else "unknown"
 				if self.filelist:
-					if '/tmp/changed2' in text[0]:
+					if '/tmp/changed2' in text:
 						text_name = self.filelist[self.index][0].split('/')[-1] + " (" + _("auto rotated") + ")"
 						text = "(" + str(self.index + 1) + "/" + str(self.maxentry + 1) + ") " + text_name
 					if text_name.startswith("changed"):
@@ -2427,7 +2426,7 @@ class Pic_Full_View3(Screen, InfoBarSeek, HelpableScreen):
 			self.start_decode()
 
 	def ShowPicture2(self):
-		if self.lastindex and self.maxentry > 0:
+		if self.lastindex is not None and self.maxentry > 0:
 			loop = 1
 			if self.lastindex == self.maxentry:
 				loop = 0
